@@ -29,6 +29,20 @@ app.get("/api", (req, res) => {
 app.use("/empresas", empresasRoutes);
 app.use("/prospeccao", prospeccaoRoutes);
 
+app.use("/empresas", (req, res) => {
+  res.status(404).json({
+    sucesso: false,
+    mensagem: "Rota de API nao encontrada"
+  });
+});
+
+app.use("/prospeccao", (req, res) => {
+  res.status(404).json({
+    sucesso: false,
+    mensagem: "Rota de API nao encontrada"
+  });
+});
+
 app.get("/health", (req, res) => {
   res.json({
     sucesso: true,

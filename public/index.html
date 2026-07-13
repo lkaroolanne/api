@@ -261,6 +261,31 @@
       insightDetalhe.textContent = detalhe;
     }
 
+    async function buscarJson(url, opcoes = {}) {
+      const resposta = await fetch(url, opcoes);
+      const textoResposta = await resposta.text();
+      let dados = null;
+
+      if (textoResposta) {
+        try {
+          dados = JSON.parse(textoResposta);
+        } catch (error) {
+          const trecho = textoResposta.replace(/\s+/g, " ").slice(0, 140);
+          throw new Error(`Resposta inesperada do servidor (${resposta.status}). ${trecho}`);
+        }
+      }
+
+      if (!resposta.ok) {
+        throw new Error(dados?.mensagem || `Erro HTTP ${resposta.status}`);
+      }
+
+      if (!dados) {
+        throw new Error("Servidor respondeu vazio. Aguarde alguns segundos e tente novamente.");
+      }
+
+      return dados;
+    }
+
     function escaparHtml(valor) {
       return texto(valor)
         .replaceAll("&", "&amp;")
@@ -301,10 +326,9 @@
         validarApiUrl();
         const grupoCnaes = atalhos.find((grupo) => grupo.tipo === "cnae");
         const cnaes = grupoCnaes.itens.map((item) => item.valor).join(",");
-        const resposta = await fetch(`${API_URL}/empresas/cnaes/contagens?cnaes=${encodeURIComponent(cnaes)}`);
-        const dados = await resposta.json();
+        const dados = await buscarJson(`${API_URL}/empresas/cnaes/contagens?cnaes=${encodeURIComponent(cnaes)}`);
 
-        if (!resposta.ok || !dados.sucesso) {
+        if (!dados.sucesso) {
           throw new Error(dados.mensagem || "Nao foi possivel contar CNAEs.");
         }
 
@@ -365,10 +389,9 @@
     async function carregarMetricas() {
       try {
         validarApiUrl();
-        const resposta = await fetch(`${API_URL}/empresas/metricas`);
-        const dados = await resposta.json();
+        const dados = await buscarJson(`${API_URL}/empresas/metricas`);
 
-        if (!resposta.ok || !dados.sucesso) {
+        if (!dados.sucesso) {
           throw new Error(dados.mensagem || "Nao foi possivel ler a base.");
         }
 
@@ -452,10 +475,9 @@
 
       try {
         validarApiUrl();
-        const resposta = await fetch(`${API_URL}/empresas/buscar-cnpj/${cnpj}`);
-        const dados = await resposta.json();
+        const dados = await buscarJson(`${API_URL}/empresas/buscar-cnpj/${cnpj}`);
 
-        if (!resposta.ok || !dados.sucesso) {
+        if (!dados.sucesso) {
           throw new Error(dados.mensagem || "Falha ao atualizar CNPJ.");
         }
 
@@ -508,10 +530,9 @@
       mensagem.textContent = "Consultando o banco de prospects...";
 
       try {
-        const resposta = await fetch(url);
-        const dados = await resposta.json();
+        const dados = await buscarJson(url);
 
-        if (!resposta.ok || !dados.sucesso) {
+        if (!dados.sucesso) {
           throw new Error(dados.mensagem || "Nao foi possivel buscar os dados.");
         }
 
@@ -549,7 +570,7 @@
         buscaAtual = { tipo: "", valor: "" };
         empresasAtuais = [];
         resumo.textContent = "Erro na consulta";
-        mensagem.textContent = `${error.message} Verifique se o backend esta rodando na porta 3001.`;
+        mensagem.textContent = error.message;
         tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
       } finally {
         definirCarregando(false);
