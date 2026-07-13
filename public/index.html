@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vortech | Banco de Prospects</title>
+  <link rel="stylesheet" href="./index.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="brand-header">
+      <img
+        class="brand-logo"
+        src="./img/WhatsApp%20Image%202026-07-10%20at%2010.33.47.jpeg"
+        alt="Vortech"
+      >
+      <div class="brand-copy">
+        <h1>Vortech Equipamentos</h1>
+        <p>Banco de prospects</p>
+        <span class="brand-badge">Solda, Corte, Gases e Ferramentas</span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar" aria-labelledby="titulo-atalhos">
+        <div class="sidebar-head">
+          <p class="eyebrow">Atalhos</p>
+          <h2 id="titulo-atalhos">Solda e industria</h2>
+        </div>
+        <div id="lista-atalhos" class="shortcut-list"></div>
+      </aside>
+
+      <section class="content-area">
+        <section class="search-panel" aria-labelledby="titulo-pagina">
+          <div>
+            <h2 id="titulo-pagina">Consulta</h2>
+            <p class="search-helper">CNAE, CNPJ ou termo de revendedor</p>
+          </div>
+
+          <form id="form-busca" class="search-form">
+            <label class="sr-only" for="busca">CNAE, CNPJ ou termo de revendedor</label>
+            <div class="input-row">
+              <input
+                id="busca"
+                name="busca"
+                type="text"
+                autocomplete="off"
+                placeholder="Ex: 4744001, Revenda de Solda, Ferramentas"
+                required
+              >
+              <button id="buscar" type="submit">Buscar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="results-panel" id="painel-resultados">
+          <div class="results-header">
+            <div>
+              <p class="eyebrow">Resultado</p>
+              <h2 id="resumo">Informe um CNAE ou palavra-chave</h2>
+            </div>
+
+            <div class="actions-row">
+              <button id="atualizar-lote" class="ghost-button" type="button" disabled>
+                Atualizar Tudo
+              </button>
+              <button id="exportar" class="secondary-button" type="button" disabled>
+                Exportar Excel
+              </button>
+              <button id="limpar" class="ghost-button" type="button">Limpar</button>
+            </div>
+          </div>
+
+          <p id="mensagem" class="message">
+            A busca consulta o backend em http://localhost:3001.
+          </p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>CNPJ</th>
+                  <th>Empresa</th>
+                  <th>Fantasia</th>
+                  <th>CNAE</th>
+                  <th>UF</th>
+                  <th>Cidade/Codigo</th>
+                  <th>Telefone</th>
+                  <th>Email</th>
+                  <th>API</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-resultados">
+                <tr>
+                  <td colspan="9" class="empty-state">Nenhuma busca realizada.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const hostLocal = ["", "localhost", "127.0.0.1"].includes(window.location.hostname);
+    const hostGithubPages = window.location.hostname.endsWith("github.io");
+    const API_URL = (
+      window.API_URL ||
+      window.localStorage.getItem("API_URL") ||
+      (hostLocal ? "http://localhost:3001" : (hostGithubPages ? "" : window.location.origin))
+    ).replace(/\/$/, "");
+    const mensagemApiPadrao = API_URL
+      ? `A busca consulta o backend em ${API_URL}.`
+      : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
+    const ATUALIZACOES_SIMULTANEAS = 6;
+
+    const atalhos = [
+      {
+        titulo: "CNAEs",
+        tipo: "cnae",
+        itens: [
+          { valor: "4744001", nome: "Ferragens e Ferramentas" },
+          { valor: "4759899", nome: "Utilidades e Ferramentas" },
+          { valor: "4684299", nome: "Distribuidor de Gases" },
+          { valor: "2539001", nome: "Usinagem, Tornearia e Solda" },
+          { valor: "4744003", nome: "Materiais Hidraulicos" },
+          { valor: "4744099", nome: "Materiais de Construcao" },
+          { valor: "4663000", nome: "Maquinas e Equipamentos" },
+          { valor: "4669999", nome: "Equipamentos Industriais" },
+          { valor: "2511000", nome: "Estruturas Metalicas" },
+          { valor: "2512800", nome: "Esquadrias Metalicas" },
+          { valor: "2513600", nome: "Caldeiraria Pesada" },
+          { valor: "2542000", nome: "Artigos de Serralheria" },
+          { valor: "2599399", nome: "Produtos de Metal" },
+          { valor: "3314710", nome: "Manutencao de Maquinas" },
+          { valor: "3321000", nome: "Instalacao de Maquinas" },
+          { valor: "4689399", nome: "Produtos Quimicos e Gases" }
+        ]
+      },
+      {
+        titulo: "Palavras-chave",
+        tipo: "termo",
+        itens: [
+          "Ferramentas",
+          "Cilindros",
+          "Solda",
+          "Gases",
+          "Macaricos",
+          "Valvulas",
+          "Reguladores",
+          "MIG",
+          "MAG",
+          "TIG",
+          "Eletrodo Revestido",
+          "Tungstenio",
+          "Mascaras de Solda",
+          "EPI",
+          "Revendedor de Solda",
+          "Revenda de Ferramentas",
+          "Loja de Ferramentas",
+          "Ferragens",
+          "Material de Construcao",
+          "Distribuidor de Gases"
+        ]
+      }
+    ];
+
+    const form = document.querySelector("#form-busca");
+    const inputBusca = document.querySelector("#busca");
+    const botaoBuscar = document.querySelector("#buscar");
+    const botaoLimpar = document.querySelector("#limpar");
+    const botaoExportar = document.querySelector("#exportar");
+    const botaoAtualizarLote = document.querySelector("#atualizar-lote");
+    const resumo = document.querySelector("#resumo");
+    const mensagem = document.querySelector("#mensagem");
+    const tabela = document.querySelector("#tabela-resultados");
+    const listaAtalhos = document.querySelector("#lista-atalhos");
+
+    let buscaAtual = { tipo: "", valor: "" };
+    let empresasAtuais = [];
+
+    mensagem.textContent = mensagemApiPadrao;
+
+    function validarApiUrl() {
+      if (!API_URL) {
+        throw new Error("URL publica do backend nao configurada.");
+      }
+    }
+
+    function limparNumeros(valor) {
+      return String(valor || "").replace(/\D/g, "");
+    }
+
+    function esperar(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    function formatarCnpj(cnpj) {
+      const limpo = limparNumeros(cnpj);
+
+      if (limpo.length !== 14) {
+        return cnpj || "-";
+      }
+
+      return limpo.replace(
+        /^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/,
+        "$1.$2.$3/$4-$5"
+      );
+    }
+
+    function texto(valor) {
+      return valor || "-";
+    }
+
+    function escaparHtml(valor) {
+      return texto(valor)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderizarAtalhos() {
+      listaAtalhos.innerHTML = atalhos.map((grupo) => `
+        <section class="shortcut-group">
+          <h3>${grupo.titulo}</h3>
+          <div class="shortcut-buttons">
+            ${grupo.itens.map((item) => {
+              const valor = typeof item === "string" ? item : item.valor;
+              const nome = typeof item === "string" ? item : item.nome;
+              const codigo = typeof item === "string" ? "" : `<strong>${item.valor}</strong>`;
+
+              return `
+                <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparHtml(valor)}">
+                  ${codigo}
+                  <span>${escaparHtml(nome)}</span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        </section>
+      `).join("");
+    }
+
+    function renderizarLinhas(empresas) {
+      empresasAtuais = empresas;
+
+      if (!empresas.length) {
+        tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>';
+        return;
+      }
+
+      tabela.innerHTML = empresas.map((empresa, index) => `
+        <tr data-index="${index}">
+          <td data-label="CNPJ">${escaparHtml(formatarCnpj(empresa.cnpj))}</td>
+          <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(empresa.razaoSocial)}</td>
+          <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(empresa.nomeFantasia)}</td>
+          <td data-label="CNAE" data-campo="cnaePrincipal">${escaparHtml(empresa.cnaePrincipal)}</td>
+          <td data-label="UF" data-campo="uf">${escaparHtml(empresa.uf || empresa.estado)}</td>
+          <td data-label="Cidade/Codigo" data-campo="cidade">${escaparHtml(empresa.municipioCodigo || empresa.cidade)}</td>
+          <td data-label="Telefone" data-campo="telefone">${escaparHtml(empresa.telefone1 || empresa.telefone)}</td>
+          <td data-label="Email" data-campo="email">${escaparHtml(empresa.email)}</td>
+          <td data-label="API">
+            <button class="mini-button" type="button" data-atualizar="${index}">
+              Atualizar
+            </button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    function aplicarDadosAtualizados(index, empresaAtualizada) {
+      const linha = tabela.querySelector(`[data-index="${index}"]`);
+
+      if (!linha) {
+        return;
+      }
+
+      empresasAtuais[index] = {
+        ...empresasAtuais[index],
+        ...empresaAtualizada
+      };
+
+      const dados = empresasAtuais[index];
+      linha.querySelector('[data-campo="razaoSocial"]').textContent = texto(dados.razaoSocial);
+      linha.querySelector('[data-campo="nomeFantasia"]').textContent = texto(dados.nomeFantasia);
+      linha.querySelector('[data-campo="cnaePrincipal"]').textContent = texto(dados.cnaePrincipal);
+      linha.querySelector('[data-campo="uf"]').textContent = texto(dados.uf || dados.estado);
+      linha.querySelector('[data-campo="cidade"]').textContent = texto(dados.cidade || dados.municipioCodigo);
+      linha.querySelector('[data-campo="telefone"]').textContent = texto(dados.telefone || dados.telefone1);
+      linha.querySelector('[data-campo="email"]').textContent = texto(dados.email);
+    }
+
+    function definirCarregando(ativo) {
+      botaoBuscar.disabled = ativo;
+      inputBusca.disabled = ativo;
+      botaoBuscar.textContent = ativo ? "Buscando..." : "Buscar";
+      document.querySelector("#painel-resultados").classList.toggle("is-loading", ativo);
+    }
+
+    function marcarAtalhoAtivo(tipo, valor) {
+      const valorNormalizado = String(valor || "").trim().toLowerCase();
+
+      listaAtalhos.querySelectorAll("[data-valor]").forEach((botao) => {
+        const ativo = botao.dataset.tipo === tipo &&
+          String(botao.dataset.valor || "").trim().toLowerCase() === valorNormalizado;
+
+        botao.classList.toggle("is-active", ativo);
+      });
+    }
+
+    async function atualizarCnpj(index) {
+      const empresa = empresasAtuais[index];
+      const cnpj = limparNumeros(empresa?.cnpj);
+
+      if (cnpj.length !== 14) {
+        return false;
+      }
+
+      const botao = tabela.querySelector(`[data-atualizar="${index}"]`);
+
+      if (botao) {
+        botao.disabled = true;
+        botao.textContent = "API...";
+      }
+
+      try {
+        validarApiUrl();
+        const resposta = await fetch(`${API_URL}/empresas/buscar-cnpj/${cnpj}`);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+          throw new Error(dados.mensagem || "Falha ao atualizar CNPJ.");
+        }
+
+        aplicarDadosAtualizados(index, dados.empresa);
+
+        if (botao) {
+          botao.textContent = "OK";
+        }
+
+        return true;
+      } catch (error) {
+        if (botao) {
+          botao.textContent = "Erro";
+        }
+
+        return false;
+      }
+    }
+
+    async function executarBusca(valor, tipo = "auto") {
+      const termo = String(valor || "").trim();
+
+      if (!termo) {
+        resumo.textContent = "Busca invalida";
+        mensagem.textContent = "Digite um CNAE, CNPJ ou palavra-chave.";
+        inputBusca.focus();
+        return;
+      }
+
+      const apenasNumeros = limparNumeros(termo);
+      const buscaPorCnae = tipo === "cnae" || (tipo === "auto" && apenasNumeros.length >= 4 && apenasNumeros.length === termo.length);
+
+      try {
+        validarApiUrl();
+      } catch (error) {
+        resumo.textContent = "Backend nao configurado";
+        mensagem.textContent = `${error.message} Defina window.API_URL ou localStorage.API_URL.`;
+        return;
+      }
+
+      const url = buscaPorCnae
+        ? `${API_URL}/empresas/cnae/${apenasNumeros}`
+        : `${API_URL}/empresas/busca?termo=${encodeURIComponent(termo)}`;
+
+      definirCarregando(true);
+      marcarAtalhoAtivo(buscaPorCnae ? "cnae" : "termo", buscaPorCnae ? apenasNumeros : termo);
+      botaoExportar.disabled = true;
+      botaoAtualizarLote.disabled = true;
+      resumo.textContent = `Buscando ${buscaPorCnae ? "CNAE" : "termo"} ${buscaPorCnae ? apenasNumeros : termo}`;
+      mensagem.textContent = "Consultando o banco de prospects...";
+
+      try {
+        const resposta = await fetch(url);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+          throw new Error(dados.mensagem || "Nao foi possivel buscar os dados.");
+        }
+
+        buscaAtual = {
+          tipo: buscaPorCnae ? "cnae" : "termo",
+          valor: buscaPorCnae ? dados.cnae : dados.termo
+        };
+
+        const exibidos = dados.exibidos || dados.empresas?.length || 0;
+        resumo.textContent = buscaAtual.tipo === "cnae" && dados.total > exibidos
+          ? `${exibidos} de ${dados.total} CNPJ(s) encontrados`
+          : `${dados.total} CNPJ(s) encontrados`;
+        mensagem.textContent = buscaAtual.tipo === "cnae"
+          ? (dados.total > exibidos
+            ? `Filtro aplicado: CNAE ${buscaAtual.valor}. Mostrando os primeiros ${exibidos}; use Exportar Excel para baixar a lista completa.`
+            : `Filtro aplicado: CNAE ${buscaAtual.valor}.`)
+          : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
+        botaoExportar.disabled = false;
+        botaoAtualizarLote.disabled = !dados.empresas?.length;
+        renderizarLinhas(dados.empresas || []);
+      } catch (error) {
+        buscaAtual = { tipo: "", valor: "" };
+        empresasAtuais = [];
+        resumo.textContent = "Erro na consulta";
+        mensagem.textContent = `${error.message} Verifique se o backend esta rodando na porta 3001.`;
+        tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
+      } finally {
+        definirCarregando(false);
+      }
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      executarBusca(inputBusca.value);
+    });
+
+    listaAtalhos.addEventListener("click", (event) => {
+      const botao = event.target.closest("[data-valor]");
+
+      if (!botao) {
+        return;
+      }
+
+      inputBusca.value = botao.dataset.valor;
+      executarBusca(botao.dataset.valor, botao.dataset.tipo);
+    });
+
+    tabela.addEventListener("click", (event) => {
+      const botao = event.target.closest("[data-atualizar]");
+
+      if (!botao) {
+        return;
+      }
+
+      atualizarCnpj(Number(botao.dataset.atualizar));
+    });
+
+    botaoAtualizarLote.addEventListener("click", async () => {
+      const total = empresasAtuais.length;
+      let atualizados = 0;
+      let processados = 0;
+      let proximoIndex = 0;
+
+      botaoAtualizarLote.disabled = true;
+      botaoExportar.disabled = true;
+      mensagem.textContent = `Atualizando dados pela API do CNPJ: 0 de ${total}.`;
+
+      async function trabalhador() {
+        while (proximoIndex < total) {
+          const index = proximoIndex;
+          proximoIndex += 1;
+
+          const ok = await atualizarCnpj(index);
+          atualizados += ok ? 1 : 0;
+          processados += 1;
+          mensagem.textContent = `Atualizando tudo: ${processados} de ${total}. Atualizados: ${atualizados}.`;
+
+          await esperar(80);
+        }
+      }
+
+      const trabalhadores = Array.from(
+        { length: Math.min(ATUALIZACOES_SIMULTANEAS, total) },
+        () => trabalhador()
+      );
+
+      await Promise.all(trabalhadores);
+
+      mensagem.textContent = `Atualizacao finalizada. ${atualizados} de ${total} CNPJ(s) atualizados pela API.`;
+      botaoAtualizarLote.disabled = false;
+      botaoExportar.disabled = !buscaAtual.valor;
+    });
+
+    botaoExportar.addEventListener("click", () => {
+      if (!buscaAtual.valor) {
+        return;
+      }
+
+      window.location.href = buscaAtual.tipo === "cnae"
+        ? `${API_URL}/empresas/cnae/${encodeURIComponent(buscaAtual.valor)}/exportar`
+        : `${API_URL}/empresas/busca/exportar?termo=${encodeURIComponent(buscaAtual.valor)}`;
+    });
+
+    botaoLimpar.addEventListener("click", () => {
+      buscaAtual = { tipo: "", valor: "" };
+      empresasAtuais = [];
+      inputBusca.value = "";
+      marcarAtalhoAtivo("", "");
+      botaoExportar.disabled = true;
+      botaoAtualizarLote.disabled = true;
+      resumo.textContent = "Informe um CNAE ou palavra-chave";
+      mensagem.textContent = mensagemApiPadrao;
+      tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma busca realizada.</td></tr>';
+      inputBusca.focus();
+    });
+
+    renderizarAtalhos();
+  </script>
+</body>
+</html>
