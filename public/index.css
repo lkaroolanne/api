@@ -1,15 +1,15 @@
 :root {
-  color-scheme: light;
-  --bg: #f4f4ef;
-  --panel: #ffffff;
-  --panel-strong: #090909;
-  --text: #161616;
-  --muted: #666666;
-  --line: rgba(17, 17, 17, 0.12);
-  --accent: #f6d900;
+  color-scheme: dark;
+  --bg: #050505;
+  --panel: rgba(14, 14, 14, 0.94);
+  --panel-strong: #0b0b0b;
+  --text: #f7f7f7;
+  --muted: #b8b8b8;
+  --line: rgba(255, 230, 0, 0.24);
+  --accent: #ffe600;
   --accent-dark: #d6bc00;
-  --accent-soft: rgba(246, 217, 0, 0.18);
-  --shadow: 0 20px 46px rgba(15, 15, 15, 0.12);
+  --accent-soft: rgba(255, 230, 0, 0.14);
+  --shadow: 0 18px 44px rgba(0, 0, 0, 0.38);
 }
 
 * {
@@ -20,8 +20,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    linear-gradient(115deg, rgba(246, 217, 0, 0.16), transparent 34%),
-    linear-gradient(180deg, #ffffff 0, #f4f4ef 340px, #ecece6 100%),
+    linear-gradient(120deg, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.96)),
+    url("./img/WhatsApp%20Image%202026-07-10%20at%2010.33.47.jpeg") right 4% top 18px / min(560px, 76vw) no-repeat fixed,
     var(--bg);
   color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
@@ -32,9 +32,7 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background:
-    linear-gradient(135deg, transparent 0 52%, rgba(0, 0, 0, 0.05) 52% 53%, transparent 53%),
-    radial-gradient(circle at top right, rgba(246, 217, 0, 0.22), transparent 30%);
+  background: radial-gradient(circle at top right, rgba(255, 230, 0, 0.16), transparent 32%);
 }
 
 .app-shell {
@@ -48,38 +46,40 @@ body::before {
   display: flex;
   align-items: center;
   gap: 16px;
-  min-height: 86px;
+  min-height: 94px;
   margin-bottom: 18px;
   padding: 14px 18px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: #ffffff;
+  background:
+    linear-gradient(90deg, rgba(255, 230, 0, 0.09), transparent 38%),
+    rgba(0, 0, 0, 0.84);
   box-shadow: var(--shadow);
 }
 
 .brand-logo {
-  width: 64px;
-  height: 64px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  width: 68px;
+  height: 68px;
+  border: 1px solid rgba(255, 230, 0, 0.56);
   border-radius: 8px;
   object-fit: contain;
   object-position: center;
   padding: 4px;
   background: #000000;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 22px rgba(255, 230, 0, 0.2);
   flex: 0 0 auto;
 }
 
 .brand-header h1 {
   margin: 0;
-  color: #111111;
+  color: var(--text);
   font-size: 30px;
   line-height: 1.1;
 }
 
 .brand-header p {
   margin: 6px 0 0;
-  color: #111111;
+  color: var(--accent);
   font-size: 15px;
   font-weight: 800;
   text-transform: uppercase;
@@ -88,65 +88,44 @@ body::before {
 .brand-badge {
   display: inline-flex;
   margin-top: 8px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 230, 0, 0.34);
   border-radius: 999px;
   padding: 6px 10px;
-  color: #111111;
-  background: var(--accent);
+  color: #f2f2f2;
+  background: rgba(255, 230, 0, 0.08);
   font-size: 12px;
   font-weight: 700;
 }
 
-.brand-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-left: auto;
-  justify-content: flex-end;
-}
-
-.brand-nav span {
-  border-bottom: 3px solid transparent;
-  padding: 10px 4px 7px;
-  color: #171717;
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.brand-nav span:first-child {
-  border-color: var(--accent);
-}
-
 .command-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
 
 .metric-card {
   min-height: 104px;
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 230, 0, 0.2);
   border-radius: 8px;
   padding: 16px;
   background:
-    linear-gradient(150deg, rgba(246, 217, 0, 0.16), transparent 48%),
-    #ffffff;
+    linear-gradient(150deg, rgba(255, 230, 0, 0.08), transparent 48%),
+    rgba(10, 10, 10, 0.9);
   box-shadow: var(--shadow);
 }
 
 .metric-card.is-primary {
-  border-color: rgba(0, 0, 0, 0.12);
+  border-color: rgba(255, 230, 0, 0.52);
   background:
-    linear-gradient(135deg, rgba(246, 217, 0, 0.92), rgba(246, 217, 0, 0.68)),
-    #f6d900;
+    linear-gradient(150deg, rgba(255, 230, 0, 0.16), transparent 48%),
+    rgba(10, 10, 10, 0.9);
 }
 
 .metric-card span,
 .insight-label {
   display: block;
-  color: #111111;
+  color: var(--accent);
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
@@ -187,7 +166,7 @@ body::before {
 .search-panel,
 .results-panel {
   background: var(--panel);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--line);
   border-radius: 8px;
   box-shadow: var(--shadow);
   -webkit-backdrop-filter: blur(4px);
@@ -199,13 +178,12 @@ body::before {
   top: 18px;
   max-height: calc(100vh - 36px);
   overflow: hidden;
-  background: #111111;
+  background: var(--panel);
 }
 
 .sidebar-head {
   padding: 20px;
-  border-bottom: 1px solid rgba(246, 217, 0, 0.28);
-  color: #ffffff;
+  border-bottom: 1px solid var(--line);
 }
 
 .eyebrow {
@@ -319,13 +297,12 @@ h2 {
   gap: 38px;
   align-items: center;
   justify-content: space-between;
-  min-height: 136px;
-  padding: 28px 34px;
+  min-height: 118px;
+  padding: 26px 34px;
   background:
-    linear-gradient(110deg, rgba(0, 0, 0, 0.92), rgba(0, 0, 0, 0.78)),
-    url("./img/WhatsApp%20Image%202026-07-10%20at%2010.33.47.jpeg") right 30px center / 220px no-repeat,
-    #090909;
-  color: #ffffff;
+    radial-gradient(circle at 28% 50%, rgba(255, 230, 0, 0.14), transparent 24%),
+    linear-gradient(135deg, rgba(255, 230, 0, 0.08), transparent 48%),
+    var(--panel);
 }
 
 .search-panel h2 {
@@ -373,10 +350,10 @@ button {
 
 input {
   width: 100%;
-  border: 1px solid rgba(0, 0, 0, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   padding: 0 16px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--text);
+  background: #151515;
 }
 
 input:focus {
@@ -453,7 +430,7 @@ button:disabled {
 }
 
 .ghost-button {
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   background: transparent;
   color: var(--text);
 }
@@ -482,7 +459,6 @@ button:disabled {
   padding: 14px 24px;
   color: var(--muted);
   border-bottom: 1px solid var(--line);
-  background: #ffffff;
 }
 
 .insight-bar {
@@ -540,8 +516,8 @@ th {
   position: sticky;
   top: 0;
   z-index: 1;
-  color: #111111;
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--panel-strong);
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
@@ -552,7 +528,7 @@ tbody tr:hover {
 }
 
 td:first-child {
-  color: #111111;
+  color: #ffffff;
   font-weight: 800;
   white-space: nowrap;
 }

@@ -99,6 +99,21 @@ const TERMOS_RUIDO = [
 ];
 
 const LIMITE_BUSCA_TERMO = 5000;
+
+const CAMPOS_LISTA_PROSPECTS = {
+  cnpj: true,
+  razaoSocial: true,
+  nomeFantasia: true,
+  cnaePrincipal: true,
+  cnaeSecundarios: true,
+  uf: true,
+  municipioCodigo: true,
+  telefone1: true,
+  telefone2: true,
+  email: true,
+  segmento: true
+};
+
 function normalizarTermoBusca(valor) {
   return String(valor || "").trim();
 }
@@ -275,6 +290,7 @@ export async function listarEmpresas(req, res) {
       orderBy: {
         criadoEm: "desc"
       },
+      select: CAMPOS_LISTA_PROSPECTS,
       take: 1000
     });
 
@@ -399,6 +415,7 @@ export async function buscarEmpresasPorTermo(req, res) {
 
     const empresas = await prisma.receitaProspect.findMany({
       where,
+      select: CAMPOS_LISTA_PROSPECTS,
       orderBy: [
         { uf: "asc" },
         { nomeFantasia: "asc" },
@@ -440,6 +457,7 @@ export async function listarEmpresasPorCnae(req, res) {
       where: {
         cnaePrincipal: cnae
       },
+      select: CAMPOS_LISTA_PROSPECTS,
       orderBy: [
         { uf: "asc" },
         { nomeFantasia: "asc" },
