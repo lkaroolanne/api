@@ -99,6 +99,7 @@ const TERMOS_RUIDO = [
 ];
 
 const LIMITE_BUSCA_TERMO = 5000;
+const LIMITE_CNAE_TELA = 500;
 
 const CAMPOS_LISTA_PROSPECTS = {
   cnpj: true,
@@ -445,6 +446,10 @@ export async function buscarEmpresasPorTermo(req, res) {
 export async function listarEmpresasPorCnae(req, res) {
   try {
     const cnae = String(req.params.cnae || "").replace(/\D/g, "");
+    const limiteSolicitado = Number.parseInt(req.query.limite, 10);
+    const limite = Number.isFinite(limiteSolicitado)
+      ? Math.min(Math.max(limiteSolicitado, 1), 1000)
+      : LIMITE_CNAE_TELA;
 
     if (!cnae) {
       return res.status(400).json({
@@ -453,23 +458,24 @@ export async function listarEmpresasPorCnae(req, res) {
       });
     }
 
-    const empresas = await prisma.receitaProspect.findMany({
-      where: {
-        cnaePrincipal: cnae
-      },
-      select: CAMPOS_LISTA_PROSPECTS,
-      orderBy: [
-        { uf: "asc" },
-        { nomeFantasia: "asc" },
-        { cnpj: "asc" }
-      ]
-    });
+    const where = { cnaePrincipal: cnae };
+    const [total, empresas] = await Promise.all([
+      prisma.receitaProspect.count({ where }),
+      prisma.receitaProspect.findMany({
+        where,
+        select: CAMPOS_LISTA_PROSPECTS,
+        orderBy: { cnpj: "asc" },
+        take: limite
+      })
+    ]);
 
     return res.json({
       sucesso: true,
       cnae,
-      total: empresas.length,
+      total,
       exibidos: empresas.length,
+      limite,
+      parcial: total > empresas.length,
       criterio: "CNAE principal exato",
       empresas
     });

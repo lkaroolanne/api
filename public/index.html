@@ -140,6 +140,7 @@
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
     const ATUALIZACOES_SIMULTANEAS = 6;
+    const LIMITE_CNAE_TELA = 500;
     const MINIMO_ATALHO_TERMO = 1;
 
     const atalhos = [
@@ -514,7 +515,7 @@
       }
 
       const url = buscaPorCnae
-        ? `${API_URL}/empresas/cnae/${apenasNumeros}`
+        ? `${API_URL}/empresas/cnae/${apenasNumeros}?limite=${LIMITE_CNAE_TELA}`
         : `${API_URL}/empresas/busca?termo=${encodeURIComponent(termo)}`;
 
       definirCarregando(true);
@@ -537,9 +538,9 @@
         };
 
         const exibidos = dados.exibidos || dados.empresas?.length || 0;
-        resumo.textContent = `${dados.total} CNPJ(s) encontrados`;
+        resumo.textContent = `${formatarNumero(dados.total)} CNPJ(s) encontrados`;
         mensagem.textContent = buscaAtual.tipo === "cnae"
-          ? `CNAE principal exato ${buscaAtual.valor}. A tela mostra todos os registros encontrados; Exportar Excel baixa a mesma lista completa.`
+          ? `CNAE principal exato ${buscaAtual.valor}. Mostrando ${formatarNumero(exibidos)} de ${formatarNumero(dados.total)} para abrir rapido; Exportar Excel baixa tudo.`
           : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
 
         if (!dados.total && totalBaseOnline === 0) {
