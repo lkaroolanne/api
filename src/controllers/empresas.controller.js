@@ -99,7 +99,7 @@ const TERMOS_RUIDO = [
 ];
 
 const LIMITE_BUSCA_TERMO = 5000;
-const LIMITE_CNAE_TELA = 500;
+const LIMITE_CNAE_TELA = 10000;
 
 const CAMPOS_LISTA_PROSPECTS = {
   cnpj: true,
@@ -447,9 +447,14 @@ export async function listarEmpresasPorCnae(req, res) {
   try {
     const cnae = String(req.params.cnae || "").replace(/\D/g, "");
     const limiteSolicitado = Number.parseInt(req.query.limite, 10);
+    const paginaSolicitada = Number.parseInt(req.query.pagina, 10);
     const limite = Number.isFinite(limiteSolicitado)
-      ? Math.min(Math.max(limiteSolicitado, 1), 1000)
+      ? Math.min(Math.max(limiteSolicitado, 1), 10000)
       : LIMITE_CNAE_TELA;
+    const pagina = Number.isFinite(paginaSolicitada)
+      ? Math.max(paginaSolicitada, 1)
+      : 1;
+    const skip = (pagina - 1) * limite;
 
     if (!cnae) {
       return res.status(400).json({
@@ -465,9 +470,11 @@ export async function listarEmpresasPorCnae(req, res) {
         where,
         select: CAMPOS_LISTA_PROSPECTS,
         orderBy: { cnpj: "asc" },
+        skip,
         take: limite
       })
     ]);
+    const totalPaginas = Math.max(Math.ceil(total / limite), 1);
 
     return res.json({
       sucesso: true,
@@ -475,6 +482,10 @@ export async function listarEmpresasPorCnae(req, res) {
       total,
       exibidos: empresas.length,
       limite,
+      pagina,
+      totalPaginas,
+      inicio: total ? skip + 1 : 0,
+      fim: skip + empresas.length,
       parcial: total > empresas.length,
       criterio: "CNAE principal exato",
       empresas
