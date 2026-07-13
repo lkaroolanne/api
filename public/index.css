@@ -269,6 +269,19 @@ h2 {
   line-height: 1.25;
 }
 
+.cnae-chip em {
+  margin-top: 8px;
+  border: 1px solid rgba(255, 230, 0, 0.26);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--accent);
+  background: rgba(255, 230, 0, 0.08);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .content-area {
   min-width: 0;
 }

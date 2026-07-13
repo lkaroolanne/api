@@ -7,6 +7,7 @@ import {
   listarEmpresasPorCnae,
   contarEmpresasPorCnae,
   obterMetricasProspects,
+  listarContagensPorCnae,
   exportarEmpresasExcel,
   exportarEmpresasPorTermoExcel,
   exportarEmpresasPorCnaeExcel
@@ -17,6 +18,8 @@ const router = Router();
 router.get("/", listarEmpresas);
 
 router.get("/metricas", obterMetricasProspects);
+
+router.get("/cnaes/contagens", listarContagensPorCnae);
 
 router.get("/busca/exportar", exportarEmpresasPorTermoExcel);
 

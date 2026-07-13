@@ -80,8 +80,6 @@ const TERMOS_RUIDO = [
 ];
 
 const LIMITE_BUSCA_TERMO = 5000;
-const LIMITE_EXIBICAO_CNAE = 1000;
-
 function normalizarTermoBusca(valor) {
   return String(valor || "").trim();
 }
@@ -319,6 +317,50 @@ export async function obterMetricasProspects(req, res) {
   }
 }
 
+export async function listarContagensPorCnae(req, res) {
+  try {
+    const cnaes = String(req.query.cnaes || "")
+      .split(",")
+      .map((cnae) => cnae.replace(/\D/g, ""))
+      .filter(Boolean);
+
+    if (!cnaes.length) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Informe CNAEs para contar"
+      });
+    }
+
+    const contagens = await prisma.receitaProspect.groupBy({
+      by: ["cnaePrincipal"],
+      where: {
+        cnaePrincipal: {
+          in: cnaes
+        }
+      },
+      _count: {
+        cnaePrincipal: true
+      }
+    });
+
+    const porCnae = Object.fromEntries(cnaes.map((cnae) => [cnae, 0]));
+
+    for (const item of contagens) {
+      porCnae[item.cnaePrincipal] = item._count.cnaePrincipal;
+    }
+
+    return res.json({
+      sucesso: true,
+      porCnae
+    });
+  } catch (error) {
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: error.message
+    });
+  }
+}
+
 export async function buscarEmpresasPorTermo(req, res) {
   try {
     const { termo, where } = montarFiltroBusca(req.query.termo);
@@ -369,32 +411,23 @@ export async function listarEmpresasPorCnae(req, res) {
       });
     }
 
-    const [total, empresas] = await Promise.all([
-      prisma.receitaProspect.count({
-        where: {
-          cnaePrincipal: cnae
-        }
-      }),
-      prisma.receitaProspect.findMany({
-        where: {
-          cnaePrincipal: cnae
-        },
-        orderBy: [
-          { uf: "asc" },
-          { nomeFantasia: "asc" },
-          { cnpj: "asc" }
-        ],
-        take: LIMITE_EXIBICAO_CNAE
-      })
-    ]);
+    const empresas = await prisma.receitaProspect.findMany({
+      where: {
+        cnaePrincipal: cnae
+      },
+      orderBy: [
+        { uf: "asc" },
+        { nomeFantasia: "asc" },
+        { cnpj: "asc" }
+      ]
+    });
 
     return res.json({
       sucesso: true,
       cnae,
-      total,
+      total: empresas.length,
       exibidos: empresas.length,
       criterio: "CNAE principal exato",
-      limiteTela: LIMITE_EXIBICAO_CNAE,
       empresas
     });
   } catch (error) {

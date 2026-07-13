@@ -145,6 +145,7 @@
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
     const ATUALIZACOES_SIMULTANEAS = 6;
+    const MINIMO_ATALHO_TERMO = 1;
 
     const atalhos = [
       {
@@ -218,6 +219,7 @@
     let buscaAtual = { tipo: "", valor: "" };
     let empresasAtuais = [];
     let totalBaseOnline = null;
+    let atalhosVisiveis = atalhos;
 
     mensagem.textContent = mensagemApiPadrao;
 
@@ -272,7 +274,7 @@
     }
 
     function renderizarAtalhos() {
-      listaAtalhos.innerHTML = atalhos.map((grupo) => `
+      listaAtalhos.innerHTML = atalhosVisiveis.map((grupo) => `
         <section class="shortcut-group">
           <h3>${grupo.titulo}</h3>
           <div class="shortcut-buttons">
@@ -280,17 +282,60 @@
               const valor = typeof item === "string" ? item : item.valor;
               const nome = typeof item === "string" ? item : item.nome;
               const codigo = typeof item === "string" ? "" : `<strong>${item.valor}</strong>`;
+              const total = typeof item === "string" || item.total === undefined
+                ? ""
+                : `<em>${formatarNumero(item.total)} CNPJ(s)</em>`;
 
               return `
                 <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparHtml(valor)}">
                   ${codigo}
                   <span>${escaparHtml(nome)}</span>
+                  ${total}
                 </button>
               `;
             }).join("")}
           </div>
         </section>
       `).join("");
+    }
+
+    async function atualizarAtalhosComDados() {
+      try {
+        validarApiUrl();
+        const grupoCnaes = atalhos.find((grupo) => grupo.tipo === "cnae");
+        const cnaes = grupoCnaes.itens.map((item) => item.valor).join(",");
+        const resposta = await fetch(`${API_URL}/empresas/cnaes/contagens?cnaes=${encodeURIComponent(cnaes)}`);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+          throw new Error(dados.mensagem || "Nao foi possivel contar CNAEs.");
+        }
+
+        atalhosVisiveis = atalhos
+          .map((grupo) => {
+            if (grupo.tipo === "cnae") {
+              return {
+                ...grupo,
+                itens: grupo.itens
+                  .map((item) => ({
+                    ...item,
+                    total: dados.porCnae[item.valor] || 0
+                  }))
+                  .filter((item) => item.total > 0)
+              };
+            }
+
+            return {
+              ...grupo,
+              itens: totalBaseOnline === 0 ? [] : grupo.itens
+            };
+          })
+          .filter((grupo) => grupo.itens.length >= MINIMO_ATALHO_TERMO);
+
+        renderizarAtalhos();
+      } catch (error) {
+        renderizarAtalhos();
+      }
     }
 
     function renderizarLinhas(empresas) {
@@ -344,6 +389,7 @@
             "O site esta no ar, mas ainda precisa receber a planilha Base_Vortech_Solda.xlsx no PostgreSQL do Render."
           );
         }
+        atualizarAtalhosComDados();
       } catch (error) {
         metricaTotal.textContent = "Offline";
         metricaTelefone.textContent = "-";
@@ -478,13 +524,9 @@
         };
 
         const exibidos = dados.exibidos || dados.empresas?.length || 0;
-        resumo.textContent = buscaAtual.tipo === "cnae" && dados.total > exibidos
-          ? `${exibidos} de ${dados.total} CNPJ(s) encontrados`
-          : `${dados.total} CNPJ(s) encontrados`;
+        resumo.textContent = `${dados.total} CNPJ(s) encontrados`;
         mensagem.textContent = buscaAtual.tipo === "cnae"
-          ? (dados.total > exibidos
-            ? `CNAE principal exato ${buscaAtual.valor}. Mostrando ${exibidos} na tela; Exportar Excel baixa todos os ${dados.total}.`
-            : `CNAE principal exato ${buscaAtual.valor}. Exportar Excel baixa a lista completa.`)
+          ? `CNAE principal exato ${buscaAtual.valor}. A tela mostra todos os registros encontrados; Exportar Excel baixa a mesma lista completa.`
           : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
 
         if (!dados.total && totalBaseOnline === 0) {
