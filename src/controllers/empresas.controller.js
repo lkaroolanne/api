@@ -80,6 +80,7 @@ const TERMOS_RUIDO = [
 ];
 
 const LIMITE_BUSCA_TERMO = 5000;
+const LIMITE_EXIBICAO_CNAE = 1000;
 
 function normalizarTermoBusca(valor) {
   return String(valor || "").trim();
@@ -267,6 +268,57 @@ export async function listarEmpresas(req, res) {
   }
 }
 
+export async function obterMetricasProspects(req, res) {
+  try {
+    const [total, comEmail, comTelefone, porCnae] = await Promise.all([
+      prisma.receitaProspect.count(),
+      prisma.receitaProspect.count({
+        where: {
+          email: {
+            not: null
+          }
+        }
+      }),
+      prisma.receitaProspect.count({
+        where: {
+          OR: [
+            { telefone1: { not: null } },
+            { telefone2: { not: null } }
+          ]
+        }
+      }),
+      prisma.receitaProspect.groupBy({
+        by: ["cnaePrincipal"],
+        _count: {
+          cnaePrincipal: true
+        },
+        orderBy: {
+          _count: {
+            cnaePrincipal: "desc"
+          }
+        },
+        take: 12
+      })
+    ]);
+
+    return res.json({
+      sucesso: true,
+      total,
+      comEmail,
+      comTelefone,
+      porCnae: porCnae.map((item) => ({
+        cnae: item.cnaePrincipal,
+        total: item._count.cnaePrincipal
+      }))
+    });
+  } catch (error) {
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: error.message
+    });
+  }
+}
+
 export async function buscarEmpresasPorTermo(req, res) {
   try {
     const { termo, where } = montarFiltroBusca(req.query.termo);
@@ -317,22 +369,64 @@ export async function listarEmpresasPorCnae(req, res) {
       });
     }
 
-    const empresas = await prisma.receitaProspect.findMany({
+    const [total, empresas] = await Promise.all([
+      prisma.receitaProspect.count({
+        where: {
+          cnaePrincipal: cnae
+        }
+      }),
+      prisma.receitaProspect.findMany({
+        where: {
+          cnaePrincipal: cnae
+        },
+        orderBy: [
+          { uf: "asc" },
+          { nomeFantasia: "asc" },
+          { cnpj: "asc" }
+        ],
+        take: LIMITE_EXIBICAO_CNAE
+      })
+    ]);
+
+    return res.json({
+      sucesso: true,
+      cnae,
+      total,
+      exibidos: empresas.length,
+      criterio: "CNAE principal exato",
+      limiteTela: LIMITE_EXIBICAO_CNAE,
+      empresas
+    });
+  } catch (error) {
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: error.message
+    });
+  }
+}
+
+export async function contarEmpresasPorCnae(req, res) {
+  try {
+    const cnae = String(req.params.cnae || "").replace(/\D/g, "");
+
+    if (!cnae) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Informe um CNAE para contar"
+      });
+    }
+
+    const total = await prisma.receitaProspect.count({
       where: {
         cnaePrincipal: cnae
-      },
-      orderBy: [
-        { uf: "asc" },
-        { nomeFantasia: "asc" },
-        { cnpj: "asc" }
-      ]
+      }
     });
 
     return res.json({
       sucesso: true,
       cnae,
-      total: empresas.length,
-      empresas
+      total,
+      criterio: "CNAE principal exato"
     });
   } catch (error) {
     return res.status(500).json({

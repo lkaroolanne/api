@@ -21,6 +21,29 @@
       </div>
     </header>
 
+    <section class="command-strip" aria-label="Indicadores da base">
+      <div class="metric-card is-primary">
+        <span>Base online</span>
+        <strong id="metrica-total">...</strong>
+        <small id="metrica-status">Verificando dados no servidor</small>
+      </div>
+      <div class="metric-card">
+        <span>Com telefone</span>
+        <strong id="metrica-telefone">...</strong>
+        <small>Prontos para abordagem comercial</small>
+      </div>
+      <div class="metric-card">
+        <span>Com e-mail</span>
+        <strong id="metrica-email">...</strong>
+        <small>Prontos para campanha e prospeccao</small>
+      </div>
+      <div class="metric-card">
+        <span>Filtro CNAE</span>
+        <strong>Exato</strong>
+        <small>CNAE principal, sem misturar segmentos</small>
+      </div>
+    </section>
+
     <div class="workspace">
       <aside class="sidebar" aria-labelledby="titulo-atalhos">
         <div class="sidebar-head">
@@ -74,6 +97,14 @@
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
+
+          <div class="insight-bar" id="insight-bar" hidden>
+            <div>
+              <span class="insight-label">Leitura comercial</span>
+              <strong id="insight-principal">Base aguardando consulta</strong>
+            </div>
+            <p id="insight-detalhe">Use um CNAE para resultado cirurgico ou uma palavra-chave para radar de aderencia.</p>
+          </div>
 
           <div class="table-wrap">
             <table>
@@ -176,9 +207,17 @@
     const mensagem = document.querySelector("#mensagem");
     const tabela = document.querySelector("#tabela-resultados");
     const listaAtalhos = document.querySelector("#lista-atalhos");
+    const metricaTotal = document.querySelector("#metrica-total");
+    const metricaStatus = document.querySelector("#metrica-status");
+    const metricaTelefone = document.querySelector("#metrica-telefone");
+    const metricaEmail = document.querySelector("#metrica-email");
+    const insightBar = document.querySelector("#insight-bar");
+    const insightPrincipal = document.querySelector("#insight-principal");
+    const insightDetalhe = document.querySelector("#insight-detalhe");
 
     let buscaAtual = { tipo: "", valor: "" };
     let empresasAtuais = [];
+    let totalBaseOnline = null;
 
     mensagem.textContent = mensagemApiPadrao;
 
@@ -196,6 +235,10 @@
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
+    function formatarNumero(valor) {
+      return Number(valor || 0).toLocaleString("pt-BR");
+    }
+
     function formatarCnpj(cnpj) {
       const limpo = limparNumeros(cnpj);
 
@@ -211,6 +254,12 @@
 
     function texto(valor) {
       return valor || "-";
+    }
+
+    function atualizarInsight(titulo, detalhe) {
+      insightBar.hidden = false;
+      insightPrincipal.textContent = titulo;
+      insightDetalhe.textContent = detalhe;
     }
 
     function escaparHtml(valor) {
@@ -269,6 +318,38 @@
           </td>
         </tr>
       `).join("");
+    }
+
+    async function carregarMetricas() {
+      try {
+        validarApiUrl();
+        const resposta = await fetch(`${API_URL}/empresas/metricas`);
+        const dados = await resposta.json();
+
+        if (!resposta.ok || !dados.sucesso) {
+          throw new Error(dados.mensagem || "Nao foi possivel ler a base.");
+        }
+
+        totalBaseOnline = dados.total;
+        metricaTotal.textContent = formatarNumero(dados.total);
+        metricaTelefone.textContent = formatarNumero(dados.comTelefone);
+        metricaEmail.textContent = formatarNumero(dados.comEmail);
+        metricaStatus.textContent = dados.total
+          ? "Base pronta para consulta e exportacao"
+          : "Base online vazia: importe a planilha para liberar resultados";
+
+        if (!dados.total) {
+          atualizarInsight(
+            "Banco online sem CNPJs importados",
+            "O site esta no ar, mas ainda precisa receber a planilha Base_Vortech_Solda.xlsx no PostgreSQL do Render."
+          );
+        }
+      } catch (error) {
+        metricaTotal.textContent = "Offline";
+        metricaTelefone.textContent = "-";
+        metricaEmail.textContent = "-";
+        metricaStatus.textContent = "Nao foi possivel verificar a base";
+      }
     }
 
     function aplicarDadosAtualizados(index, empresaAtualizada) {
@@ -402,9 +483,26 @@
           : `${dados.total} CNPJ(s) encontrados`;
         mensagem.textContent = buscaAtual.tipo === "cnae"
           ? (dados.total > exibidos
-            ? `Filtro aplicado: CNAE ${buscaAtual.valor}. Mostrando os primeiros ${exibidos}; use Exportar Excel para baixar a lista completa.`
-            : `Filtro aplicado: CNAE ${buscaAtual.valor}.`)
+            ? `CNAE principal exato ${buscaAtual.valor}. Mostrando ${exibidos} na tela; Exportar Excel baixa todos os ${dados.total}.`
+            : `CNAE principal exato ${buscaAtual.valor}. Exportar Excel baixa a lista completa.`)
           : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
+
+        if (!dados.total && totalBaseOnline === 0) {
+          atualizarInsight(
+            "A busca esta correta, mas a base online esta vazia",
+            "Importe a planilha para o banco do Render. Depois disso este CNAE passa a retornar todos os CNPJs cadastrados."
+          );
+        } else if (buscaAtual.tipo === "cnae") {
+          atualizarInsight(
+            `CNAE ${buscaAtual.valor}: ${formatarNumero(dados.total)} registro(s) exatos`,
+            "A consulta usa somente CNAE principal igual ao codigo informado. Para lista completa, use Exportar Excel."
+          );
+        } else {
+          atualizarInsight(
+            `${formatarNumero(dados.total)} lead(s) com aderencia comercial`,
+            "A busca por termo cruza palavras fortes de solda, ferramentas, gases e revenda para reduzir ruido."
+          );
+        }
         botaoExportar.disabled = false;
         botaoAtualizarLote.disabled = !dados.empresas?.length;
         renderizarLinhas(dados.empresas || []);
@@ -505,6 +603,7 @@
     });
 
     renderizarAtalhos();
+    carregarMetricas();
   </script>
 </body>
 </html>

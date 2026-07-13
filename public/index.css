@@ -96,6 +96,53 @@ body::before {
   font-weight: 700;
 }
 
+.command-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.metric-card {
+  min-height: 104px;
+  border: 1px solid rgba(255, 230, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  background:
+    linear-gradient(150deg, rgba(255, 230, 0, 0.08), transparent 48%),
+    rgba(10, 10, 10, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.metric-card.is-primary {
+  border-color: rgba(255, 230, 0, 0.52);
+}
+
+.metric-card span,
+.insight-label {
+  display: block;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.metric-card small {
+  display: block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 300px;
@@ -396,6 +443,36 @@ button:disabled {
   border-bottom: 1px solid var(--line);
 }
 
+.insight-bar {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.5fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding: 16px 24px;
+  background:
+    linear-gradient(90deg, rgba(255, 230, 0, 0.12), transparent 54%),
+    rgba(255, 230, 0, 0.04);
+}
+
+.insight-bar[hidden] {
+  display: none;
+}
+
+.insight-bar strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.insight-bar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .table-wrap {
   max-height: calc(100vh - 320px);
   overflow: auto;
@@ -457,6 +534,10 @@ td:first-child {
 }
 
 @media (max-width: 1040px) {
+  .command-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
@@ -537,6 +618,11 @@ td:first-child {
     flex-direction: column;
   }
 
+  .command-strip,
+  .insight-bar {
+    grid-template-columns: 1fr;
+  }
+
   .shortcut-list {
     grid-template-columns: 1fr;
     max-height: 300px;
@@ -553,7 +639,8 @@ td:first-child {
 
   .search-panel,
   .results-header,
-  .message {
+  .message,
+  .insight-bar {
     padding: 16px;
   }
 
@@ -659,7 +746,8 @@ td:first-child {
   .sidebar-head,
   .search-panel,
   .results-header,
-  .message {
+  .message,
+  .insight-bar {
     padding: 14px;
   }
 
