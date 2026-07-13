@@ -3,45 +3,50 @@ import { buscarCnpjBrasilApi } from "../services/cnpj.service.js";
 import { gerarPlanilhaEmpresas } from "../services/exportarExcel.service.js";
 
 const CNAES_SOLDAGEM_REVENDA = new Set([
-  "2014200",
-  "2511000",
-  "2512800",
-  "2513600",
-  "2539001",
-  "2542000",
-  "2599399",
-  "3314710",
-  "3321000",
   "4663000",
   "4669999",
+  "4672900",
   "4684299",
-  "4689301",
-  "4689302",
   "4689399",
   "4744001",
-  "4744003",
-  "4744099",
-  "4759899",
-  "7732202"
+  "4759899"
 ]);
 
 const TERMOS_FORTES_SOLDA = [
   "solda",
   "soldagem",
+  "soldador",
+  "soldadores",
   "mig",
   "mag",
   "tig",
   "eletrodo",
+  "eletrodos",
   "tungstenio",
+  "arame",
+  "vareta",
   "cilindro",
   "cilindros",
   "gas",
   "gases",
+  "oxigenio",
+  "argonio",
+  "acetileno",
+  "co2",
   "macarico",
+  "macaricos",
   "valvula",
   "valvulas",
   "regulador",
   "reguladores",
+  "inversora",
+  "inversoras",
+  "retificador",
+  "retificadores",
+  "tocha",
+  "tochas",
+  "abrasivo",
+  "abrasivos",
   "oxicorte",
   "plasma",
   "ferragem",
@@ -51,6 +56,20 @@ const TERMOS_FORTES_SOLDA = [
   "epi",
   "mascara",
   "mascaras"
+];
+
+const TERMOS_REVENDA = [
+  "revenda",
+  "revendedor",
+  "distribuidor",
+  "distribuidora",
+  "comercio",
+  "comercial",
+  "loja",
+  "ferragens",
+  "ferramentas",
+  "suprimentos",
+  "equipamentos"
 ];
 
 const TERMOS_RUIDO = [
@@ -155,6 +174,12 @@ function calcularAderenciaSolda(empresa, termo) {
     }
   }
 
+  for (const palavra of TERMOS_REVENDA) {
+    if (tokens.has(palavra)) {
+      score += 1;
+    }
+  }
+
   return score;
 }
 
@@ -169,7 +194,7 @@ function filtrarEmpresasAderentes(empresas, termo) {
       ...empresa,
       aderenciaSolda: calcularAderenciaSolda(empresa, termo)
     }))
-    .filter((empresa) => empresa.aderenciaSolda >= 3 && !(ehRuidoComercial(empresa) && empresa.aderenciaSolda < 6))
+    .filter((empresa) => empresa.aderenciaSolda >= 5 && !(ehRuidoComercial(empresa) && empresa.aderenciaSolda < 7))
     .sort((a, b) => b.aderenciaSolda - a.aderenciaSolda || String(a.nomeFantasia || "").localeCompare(String(b.nomeFantasia || "")));
 }
 

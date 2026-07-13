@@ -8,18 +8,59 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const PASTA_ESTABELECIMENTOS = path.resolve("data/receita/estabelecimentos");
+const TAMANHO_LOTE = Number(process.env.IMPORT_BATCH_SIZE || 1000);
 
 const CNAES_INTERESSE = {
-  "2539001": "Soldagem / serviços industriais",
-  "2539002": "Tratamento e revestimento em metais",
-  "4663000": "Máquinas e equipamentos industriais",
-  "4669999": "Equipamentos industriais diversos",
-  "4672900": "Ferragens e ferramentas atacado",
-  "4744001": "Ferragens e ferramentas varejo",
-  "4684299": "Produtos químicos / gases industriais",
-  "2014200": "Gases industriais",
-  "4789099": "Produtos técnicos diversos"
+  "4663000": "Revenda de maquinas, equipamentos e inversoras",
+  "4669999": "Revenda de equipamentos industriais para solda",
+  "4672900": "Atacado de ferragens e ferramentas",
+  "4684299": "Distribuidor de gases e cilindros",
+  "4689399": "Distribuidor tecnico de produtos para solda",
+  "4744001": "Varejo de ferragens e ferramentas",
+  "4759899": "Revenda tecnica de utilidades, maquinas e suprimentos"
 };
+
+const TERMOS_ADERENTES = [
+  "solda",
+  "soldagem",
+  "mig",
+  "mag",
+  "tig",
+  "eletrodo",
+  "eletrodos",
+  "tungstenio",
+  "arame",
+  "vareta",
+  "cilindro",
+  "cilindros",
+  "regulador",
+  "reguladores",
+  "valvula",
+  "valvulas",
+  "macarico",
+  "macaricos",
+  "inversora",
+  "inversoras",
+  "retificador",
+  "abrasivo",
+  "abrasivos",
+  "oxicorte",
+  "plasma",
+  "oxigenio",
+  "argonio",
+  "acetileno",
+  "ferragem",
+  "ferragens",
+  "ferramenta",
+  "ferramentas"
+];
+
+const CNAES_AMPLOS_COM_TERMO_OBRIGATORIO = new Set([
+  "4663000",
+  "4669999",
+  "4689399",
+  "4759899"
+]);
 
 const HEADERS = [
   "cnpjBasico",
@@ -59,25 +100,86 @@ function limpar(valor) {
   return String(valor).trim().replace(/^"|"$/g, "") || null;
 }
 
+function normalizarTexto(valor) {
+  return String(valor || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function montarCnpj(row) {
   return `${limpar(row.cnpjBasico)}${limpar(row.cnpjOrdem)}${limpar(row.cnpjDv)}`;
 }
 
-async function salvarLote(lote) {
-  if (!lote.length) return;
+function montarTelefone(ddd, telefone) {
+  const dddLimpo = limpar(ddd);
+  const telefoneLimpo = limpar(telefone);
+  return dddLimpo && telefoneLimpo ? `${dddLimpo}${telefoneLimpo}` : null;
+}
 
-  await prisma.receitaProspect.createMany({
+function temTermoAderente(row) {
+  const texto = normalizarTexto([
+    row.nomeFantasia,
+    row.cnaePrincipal,
+    row.cnaeSecundarios,
+    row.tipoLogradouro,
+    row.logradouro,
+    row.bairro,
+    row.email
+  ].filter(Boolean).join(" "));
+
+  return TERMOS_ADERENTES.some((termo) => texto.includes(termo));
+}
+
+function montarProspect(row) {
+  const cnae = limpar(row.cnaePrincipal);
+  const situacao = limpar(row.situacao);
+
+  if (situacao !== "02") return null;
+  if (!CNAES_INTERESSE[cnae]) return null;
+  if (CNAES_AMPLOS_COM_TERMO_OBRIGATORIO.has(cnae) && !temTermoAderente(row)) return null;
+
+  return {
+    cnpj: montarCnpj(row),
+    cnpjBasico: limpar(row.cnpjBasico),
+    nomeFantasia: limpar(row.nomeFantasia),
+    situacao,
+    cnaePrincipal: cnae,
+    cnaeSecundarios: limpar(row.cnaeSecundarios),
+    tipoLogradouro: limpar(row.tipoLogradouro),
+    logradouro: limpar(row.logradouro),
+    numero: limpar(row.numero),
+    complemento: limpar(row.complemento),
+    bairro: limpar(row.bairro),
+    cep: limpar(row.cep),
+    uf: limpar(row.uf),
+    municipioCodigo: limpar(row.municipioCodigo),
+    telefone1: montarTelefone(row.ddd1, row.telefone1),
+    telefone2: montarTelefone(row.ddd2, row.telefone2),
+    email: limpar(row.email)?.toLowerCase() || null,
+    segmento: CNAES_INTERESSE[cnae],
+    origem: "Receita Federal"
+  };
+}
+
+async function salvarLote(lote) {
+  if (!lote.length) return 0;
+
+  const resultado = await prisma.receitaProspect.createMany({
     data: lote,
     skipDuplicates: true
   });
 
-  console.log(`✅ Salvos: ${lote.length}`);
+  return resultado.count;
 }
 
 async function processarZip(caminhoZip) {
-  console.log(`📦 Processando: ${caminhoZip}`);
+  console.log(`Processando: ${path.basename(caminhoZip)}`);
 
   const directory = await unzipper.Open.file(caminhoZip);
+  let lidos = 0;
+  let validos = 0;
+  let inseridos = 0;
 
   for (const file of directory.files) {
     if (file.type !== "File") continue;
@@ -85,7 +187,9 @@ async function processarZip(caminhoZip) {
     let lote = [];
 
     await new Promise((resolve, reject) => {
-      file
+      let parser;
+
+      parser = file
         .stream()
         .pipe(iconv.decodeStream("latin1"))
         .pipe(
@@ -94,74 +198,59 @@ async function processarZip(caminhoZip) {
             headers: HEADERS
           })
         )
-        .on("data", (row) => {
-          const cnae = limpar(row.cnaePrincipal);
-          const situacao = limpar(row.situacao);
+        .on("data", async (row) => {
+          parser.pause();
+          lidos += 1;
+          const prospect = montarProspect(row);
 
-          if (situacao !== "02") return;
-          if (!CNAES_INTERESSE[cnae]) return;
+          if (!prospect) {
+            parser.resume();
+            return;
+          }
 
-          const cnpj = montarCnpj(row);
+          validos += 1;
+          lote.push(prospect);
 
-          lote.push({
-            cnpj,
-            cnpjBasico: limpar(row.cnpjBasico),
-            nomeFantasia: limpar(row.nomeFantasia),
-            situacao,
-            cnaePrincipal: cnae,
-            cnaeSecundarios: limpar(row.cnaeSecundarios),
-            tipoLogradouro: limpar(row.tipoLogradouro),
-            logradouro: limpar(row.logradouro),
-            numero: limpar(row.numero),
-            complemento: limpar(row.complemento),
-            bairro: limpar(row.bairro),
-            cep: limpar(row.cep),
-            uf: limpar(row.uf),
-            municipioCodigo: limpar(row.municipioCodigo),
-            telefone1:
-              limpar(row.ddd1) && limpar(row.telefone1)
-                ? `${limpar(row.ddd1)}${limpar(row.telefone1)}`
-                : null,
-            telefone2:
-              limpar(row.ddd2) && limpar(row.telefone2)
-                ? `${limpar(row.ddd2)}${limpar(row.telefone2)}`
-                : null,
-            email: limpar(row.email),
-            segmento: CNAES_INTERESSE[cnae],
-            origem: "Receita Federal"
-          });
-
-          if (lote.length >= 1000) {
+          if (lote.length >= TAMANHO_LOTE) {
             const paraSalvar = lote;
             lote = [];
-            salvarLote(paraSalvar).catch(console.error);
+            inseridos += await salvarLote(paraSalvar);
+            console.log(`Lidos: ${lidos} | Aderentes: ${validos} | Inseridos: ${inseridos}`);
           }
+
+          parser.resume();
         })
         .on("end", async () => {
-          await salvarLote(lote);
+          inseridos += await salvarLote(lote);
           resolve();
         })
         .on("error", reject);
     });
   }
+
+  console.log(`Finalizado ${path.basename(caminhoZip)} | Lidos: ${lidos} | Aderentes: ${validos} | Inseridos: ${inseridos}`);
 }
 
 async function main() {
   const arquivos = fs
     .readdirSync(PASTA_ESTABELECIMENTOS)
-    .filter((arquivo) => arquivo.toLowerCase().endsWith(".zip"));
+    .filter((arquivo) => arquivo.toLowerCase().endsWith(".zip"))
+    .sort();
 
-  console.log(`🔎 Arquivos encontrados: ${arquivos.length}`);
+  console.log(`Arquivos de estabelecimentos encontrados: ${arquivos.length}`);
 
   for (const arquivo of arquivos) {
     await processarZip(path.join(PASTA_ESTABELECIMENTOS, arquivo));
   }
 
-  console.log("🎉 Importação finalizada.");
+  console.log("Importacao de estabelecimentos finalizada.");
 }
 
 main()
-  .catch(console.error)
+  .catch((error) => {
+    console.error("Erro ao importar estabelecimentos:", error);
+    process.exitCode = 1;
+  })
   .finally(async () => {
     await prisma.$disconnect();
   });
