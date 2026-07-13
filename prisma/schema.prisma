@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Empresa {
+  id              Int      @id @default(autoincrement())
+  cnpj            String   @unique
+  razaoSocial     String?
+  nomeFantasia    String?
+  situacao        String?
+  porte           String?
+  cnaePrincipal   String?
+  cnaeDescricao   String?
+  telefone        String?
+  email           String?
+  site            String?
+  cep             String?
+  endereco        String?
+  bairro          String?
+  cidade          String?
+  estado          String?
+  latitude        Float?
+  longitude       Float?
+  segmento        String?
+  origem          String?
+  observacao      String?
+  criadoEm        DateTime @default(now())
+  atualizadoEm    DateTime @updatedAt
+}
+
+model ProspectGoogle {
+  id            Int      @id @default(autoincrement())
+  placeId       String   @unique
+  nome          String?
+  endereco      String?
+  telefone      String?
+  site          String?
+  googleMapsUri String?
+  latitude      Float?
+  longitude     Float?
+  rating        Float?
+  cidade        String?
+  estado        String?
+  palavraChave  String?
+  segmento      String?
+  origem        String?  @default("Google Places")
+  criadoEm      DateTime @default(now())
+  atualizadoEm  DateTime @updatedAt
+}
+
+model ReceitaProspect {
+  id                        Int      @id @default(autoincrement())
+
+  // Identificação
+  cnpj                      String   @unique
+  cnpjBasico                String
+
+  // Dados da Empresa (arquivo EMPRESAS)
+  razaoSocial               String?
+  naturezaJuridica          String?
+  qualificacaoResponsavel   String?
+  capitalSocial             String?
+  porteEmpresa              String?
+  enteFederativo            String?
+
+  // Dados do Estabelecimento
+  nomeFantasia              String?
+  situacao                  String?
+  cnaePrincipal             String?
+  cnaeSecundarios           String?
+
+  tipoLogradouro            String?
+  logradouro                String?
+  numero                    String?
+  complemento               String?
+  bairro                    String?
+  cep                       String?
+
+  uf                        String?
+  municipioCodigo           String?
+
+  telefone1                 String?
+  telefone2                 String?
+
+  email                     String?
+
+  // Classificação Comercial
+  segmento                  String?
+  origem                    String? @default("Receita Federal")
+
+  criadoEm                  DateTime @default(now())
+  atualizadoEm              DateTime @default(now()) @updatedAt
+
+  @@index([cnpjBasico])
+  @@index([uf])
+  @@index([cnaePrincipal])
+  @@index([segmento])
+}

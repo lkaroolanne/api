@@ -1,0 +1,38 @@
+{
+  "name": "prospect-api",
+  "version": "1.0.0",
+  "description": "API de prospecção e validação de empresas - Vortech",
+  "main": "src/server.js/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon src/server.js/index.js",
+    "start": "node src/server.js/index.js",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
+    "prisma:studio": "prisma studio",
+    "importar:receita": "node scripts/importarEstabelecimentos.js"
+  },
+  "keywords": [
+    "prospects",
+    "crm",
+    "cnpj",
+    "vortech"
+  ],
+  "author": "Vortech",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "axios": "^1.16.1",
+    "cors": "^2.8.6",
+    "csv-parser": "^3.2.1",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "iconv-lite": "^0.7.2",
+    "unzipper": "^0.12.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prisma": "^6.19.3"
+  }
+}

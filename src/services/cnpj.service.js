@@ -1,0 +1,157 @@
+import axios from "axios";
+
+function limparCnpj(cnpj) {
+  return String(cnpj || "").replace(/\D/g, "");
+}
+
+function primeiroTelefone(phones = []) {
+  const telefone = phones.find((item) => item?.area && item?.number);
+  return telefone ? `${telefone.area}${telefone.number}` : null;
+}
+
+function primeiroEmail(emails = []) {
+  return emails.find((item) => item?.address)?.address || null;
+}
+
+function enderecoCompleto(address = {}) {
+  return [
+    address.street,
+    address.number,
+    address.details
+  ].filter(Boolean).join(", ") || null;
+}
+
+function normalizarCnae(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function mapearCnpja(data) {
+  const cnaePrincipal = normalizarCnae(data.mainActivity?.id);
+  const cnaesSecundarios = (data.sideActivities || [])
+    .map((item) => normalizarCnae(item.id))
+    .filter(Boolean)
+    .join(",");
+
+  const telefone = primeiroTelefone(data.phones);
+  const email = primeiroEmail(data.emails);
+
+  const empresa = {
+    cnpj: limparCnpj(data.taxId),
+    razaoSocial: data.company?.name || null,
+    nomeFantasia: data.alias || null,
+    situacao: data.status?.text || null,
+    porte: data.company?.size?.text || data.company?.size?.acronym || null,
+    cnaePrincipal,
+    cnaeDescricao: data.mainActivity?.text || null,
+    telefone,
+    email,
+    cep: data.address?.zip || null,
+    endereco: enderecoCompleto(data.address),
+    bairro: data.address?.district || null,
+    cidade: data.address?.city || null,
+    estado: data.address?.state || null,
+    latitude: data.address?.latitude || null,
+    longitude: data.address?.longitude || null,
+    origem: "CNPJa"
+  };
+
+  return {
+    empresa,
+    receitaProspect: {
+      cnpj: empresa.cnpj,
+      cnpjBasico: empresa.cnpj.slice(0, 8),
+      razaoSocial: empresa.razaoSocial,
+      naturezaJuridica: data.company?.nature?.text || null,
+      capitalSocial: data.company?.equity ? String(data.company.equity) : null,
+      porteEmpresa: empresa.porte,
+      nomeFantasia: empresa.nomeFantasia,
+      situacao: empresa.situacao,
+      cnaePrincipal,
+      cnaeSecundarios: cnaesSecundarios || null,
+      logradouro: data.address?.street || null,
+      numero: data.address?.number || null,
+      complemento: data.address?.details || null,
+      bairro: empresa.bairro,
+      cep: empresa.cep,
+      uf: empresa.estado,
+      municipioCodigo: data.address?.municipality ? String(data.address.municipality) : null,
+      telefone1: telefone,
+      email,
+      origem: "Receita Federal / CNPJa"
+    }
+  };
+}
+
+async function buscarCnpjCnpja(cnpjLimpo) {
+  const apiKey = process.env.CNPJA_API_KEY;
+  const baseUrl = apiKey ? "https://api.cnpja.com" : "https://open.cnpja.com";
+  const params = apiKey
+    ? { strategy: "CACHE_IF_FRESH", maxAge: 45, geocoding: true }
+    : {};
+
+  const response = await axios.get(`${baseUrl}/office/${cnpjLimpo}`, {
+    params,
+    headers: apiKey ? { Authorization: apiKey } : undefined,
+    timeout: 20000
+  });
+
+  return mapearCnpja(response.data);
+}
+
+async function buscarCnpjBrasilApiFallback(cnpjLimpo) {
+  const url = `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`;
+  const response = await axios.get(url, { timeout: 20000 });
+  const data = response.data;
+
+  const empresa = {
+    cnpj: limparCnpj(data.cnpj),
+    razaoSocial: data.razao_social,
+    nomeFantasia: data.nome_fantasia,
+    situacao: data.descricao_situacao_cadastral,
+    porte: data.porte,
+    cnaePrincipal: String(data.cnae_fiscal),
+    cnaeDescricao: data.cnae_fiscal_descricao,
+    telefone: data.ddd_telefone_1,
+    email: data.email,
+    cep: data.cep,
+    endereco: `${data.logradouro || ""}, ${data.numero || ""}`.trim(),
+    bairro: data.bairro,
+    cidade: data.municipio,
+    estado: data.uf,
+    origem: "BrasilAPI"
+  };
+
+  return {
+    empresa,
+    receitaProspect: {
+      cnpj: empresa.cnpj,
+      cnpjBasico: empresa.cnpj.slice(0, 8),
+      razaoSocial: empresa.razaoSocial,
+      nomeFantasia: empresa.nomeFantasia,
+      situacao: empresa.situacao,
+      cnaePrincipal: empresa.cnaePrincipal,
+      telefone1: empresa.telefone,
+      email: empresa.email,
+      cep: empresa.cep,
+      logradouro: empresa.endereco,
+      bairro: empresa.bairro,
+      uf: empresa.estado,
+      origem: "Receita Federal / BrasilAPI"
+    }
+  };
+}
+
+export async function buscarCnpjBrasilApi(cnpj) {
+  const cnpjLimpo = limparCnpj(cnpj);
+
+  if (cnpjLimpo.length !== 14) {
+    throw new Error("CNPJ invalido");
+  }
+
+  try {
+    return await buscarCnpjCnpja(cnpjLimpo);
+  } catch (error) {
+    console.log("Erro CNPJa, usando fallback BrasilAPI:", error.response?.data || error.message);
+    return buscarCnpjBrasilApiFallback(cnpjLimpo);
+  }
+}
