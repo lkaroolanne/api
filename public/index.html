@@ -182,21 +182,6 @@
             <span id="contador-base-vortech">Ja na base: 0</span>
           </div>
 
-          <div class="ranking-grid" id="ranking-grid" hidden>
-            <section>
-              <h3>Ranking geografico</h3>
-              <div id="ranking-local" class="ranking-list"></div>
-            </section>
-            <section>
-              <h3>Ranking CNAE</h3>
-              <div id="ranking-cnae" class="ranking-list"></div>
-            </section>
-            <section>
-              <h3>Templates</h3>
-              <div id="templates-abordagem" class="template-list"></div>
-            </section>
-          </div>
-
           <div class="daily-list" id="daily-list" hidden>
             <div class="daily-head">
               <div>
@@ -381,10 +366,6 @@
     const botaoLimparFiltros = $("#limpar-filtros");
     const gradeExecutiva = $("#executive-grid");
     const leadCounter = $("#lead-counter");
-    const rankingGrid = $("#ranking-grid");
-    const rankingLocal = $("#ranking-local");
-    const rankingCnae = $("#ranking-cnae");
-    const templatesAbordagem = $("#templates-abordagem");
     const baseVortechPanel = $("#base-vortech-panel");
     const baseVortechStatus = $("#base-vortech-status");
     const baseVortechTexto = $("#base-vortech-texto");
@@ -1015,46 +996,6 @@
       $("#contador-base-vortech").textContent = `Ja na base: ${formatarNumero(visiveisBaseVortech)}`;
     }
 
-    function atualizarRankings() {
-      const contagem = (lista, chaveFn) => {
-        const mapa = new Map();
-        lista.forEach((lead) => {
-          const chave = chaveFn(lead);
-          if (chave && chave !== "-") mapa.set(chave, (mapa.get(chave) || 0) + 1);
-        });
-        return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
-      };
-      const porUf = contagem(empresasAtuais, (lead) => lead.ufComercial);
-      const porCidade = contagem(empresasAtuais, (lead) => `${lead.cidadeComercial}/${lead.ufComercial}`);
-      const porCnae = contagem(empresasAtuais, (lead) => lead.cnaePrincipal);
-      const regioes = { Norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"], Nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"], "Centro-Oeste": ["DF", "GO", "MT", "MS"], Sudeste: ["ES", "MG", "RJ", "SP"], Sul: ["PR", "RS", "SC"] };
-      const porRegiao = contagem(empresasAtuais, (lead) => Object.keys(regioes).find((regiao) => regioes[regiao].includes(String(lead.ufComercial).toUpperCase())) || "");
-      const linhaRanking = ([nome, total]) => `
-        <p class="ranking-row">
-          <span>${escaparHtml(nome || "-")}</span>
-          <strong>${formatarNumero(total || 0)}</strong>
-        </p>
-      `;
-
-      rankingLocal.innerHTML = [
-        `<p class="ranking-feature"><span>UF lider</span><strong>${escaparHtml(porUf[0]?.[0] || "-")}</strong></p>`,
-        `<p class="ranking-feature"><span>Cidade lider</span><strong>${escaparHtml(porCidade[0]?.[0] || "-")}</strong></p>`,
-        `<div class="ranking-mini-grid">${porRegiao.length ? porRegiao.map(linhaRanking).join("") : '<p class="ranking-row"><span>Regioes</span><strong>-</strong></p>'}</div>`
-      ].join("");
-
-      rankingCnae.innerHTML = porCnae.length
-        ? porCnae.map(linhaRanking).join("")
-        : "<p>Sem CNAE informado.</p>";
-    }
-
-    function renderizarTemplates() {
-      templatesAbordagem.innerHTML = Object.keys(templates).map((nome) => `
-        <button class="template-button" type="button" data-template="${escaparAtributo(nome)}">
-          ${escaparHtml(nome)}
-        </button>
-      `).join("");
-    }
-
     function opcoesStatus(statusAtual, chave) {
       return `
         <select class="status-select" data-status="${escaparAtributo(chave)}">
@@ -1092,11 +1033,9 @@
       const colspan = 13;
 
       atualizarResumoExecutivo();
-      atualizarRankings();
       barraComercial.hidden = !empresasAtuais.length;
       gradeExecutiva.hidden = !empresasAtuais.length;
       leadCounter.hidden = !empresasAtuais.length;
-      rankingGrid.hidden = !empresasAtuais.length;
       botaoListaDia.disabled = !empresasAtuais.length;
       botaoCopiarVisiveis.disabled = !empresasVisiveis.length;
 
@@ -1448,7 +1387,6 @@
         barraComercial.hidden = true;
         gradeExecutiva.hidden = true;
         leadCounter.hidden = true;
-        rankingGrid.hidden = true;
         dailyList.hidden = true;
         resumo.textContent = "Erro na consulta";
         mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
@@ -1792,12 +1730,6 @@
       dailyList.hidden = true;
     });
 
-    templatesAbordagem.addEventListener("click", (event) => {
-      const botao = event.target.closest("[data-template]");
-      if (!botao) return;
-      copiarTexto(templates[botao.dataset.template], `Template ${botao.dataset.template} copiado.`);
-    });
-
     inputBusca.addEventListener("input", atualizarSugestoes);
 
     sugestoesBusca.addEventListener("click", (event) => {
@@ -1835,7 +1767,6 @@
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
       leadCounter.hidden = true;
-      rankingGrid.hidden = true;
       dailyList.hidden = true;
       listaVendedor.hidden = true;
       document.querySelector(".table-wrap").hidden = false;
@@ -1846,7 +1777,6 @@
     });
 
     renderizarAtalhos();
-    renderizarTemplates();
     atualizarStatusBaseVortech();
     carregarMetricas();
   </script>
