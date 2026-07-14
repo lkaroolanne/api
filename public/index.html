@@ -736,6 +736,15 @@
         .replaceAll("'", "&#039;");
     }
 
+    function escaparHtmlBruto(valor) {
+      return String(valor || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
     function renderizarAtalhos() {
       listaAtalhos.innerHTML = atalhosVisiveis.map((grupo) => `
         <section class="shortcut-group">
@@ -926,9 +935,16 @@
           ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
           <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
           <button class="mini-button" type="button" data-email="${index}">E-mail</button>
-          <button class="favorite-button ${lead.favorito ? "is-active" : ""}" type="button" data-favorito="${index}" title="Favorito">★</button>
+          <button class="favorite-button ${lead.favorito ? "is-active" : ""}" type="button" data-favorito="${index}" title="Favorito">Fav</button>
         </div>
       `;
+    }
+
+    function acaoCurta(lead) {
+      if (lead.acaoSugerida.includes("WhatsApp")) return "WhatsApp";
+      if (lead.acaoSugerida.includes("e-mail")) return "E-mail";
+      if (lead.acaoSugerida.includes("API")) return "Enriquecer";
+      return lead.acaoSugerida;
     }
 
     function renderizarLinhas(empresas) {
@@ -976,8 +992,8 @@
               <td data-label="Cidade/Codigo" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>
               <td data-label="Telefone" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>
               <td data-label="Email" data-campo="email">${escaparHtml(lead.email)}</td>
-              <td data-label="Status">${opcoesStatus(lead.status, lead.chaveLocal)}<textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtml(lead.observacao)}</textarea></td>
-              <td data-label="Acao"><strong>${escaparHtml(lead.acaoSugerida)}</strong>${renderizarAcoesLead(lead, index)}</td>
+              <td data-label="Status">${opcoesStatus(lead.status, lead.chaveLocal)}<textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtmlBruto(lead.observacao)}</textarea></td>
+              <td data-label="Acao"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>
               <td data-label="API"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>
             </tr>
           `;
@@ -994,7 +1010,7 @@
               <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
               <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
               ${opcoesStatus(lead.status, lead.chaveLocal)}
-              <textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtml(lead.observacao)}</textarea>
+              <textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtmlBruto(lead.observacao)}</textarea>
               ${renderizarAcoesLead(lead, index)}
             </article>
           `;

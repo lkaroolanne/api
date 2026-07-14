@@ -42,9 +42,9 @@ body::before {
 
 .app-shell {
   position: relative;
-  width: min(1420px, calc(100% - 32px));
+  width: min(1840px, calc(100% - 24px));
   margin: 0 auto;
-  padding: 28px 0;
+  padding: 18px 0;
 }
 
 .brand-header {
@@ -158,8 +158,8 @@ body::before {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 14px;
   align-items: start;
 }
 
@@ -184,8 +184,8 @@ body::before {
 
 .sidebar {
   position: sticky;
-  top: 18px;
-  max-height: calc(100vh - 36px);
+  top: 12px;
+  max-height: calc(100vh - 24px);
   overflow: hidden;
   background: var(--panel);
 }
@@ -439,9 +439,14 @@ button:disabled {
 .actions-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
   justify-content: flex-end;
+}
+
+.actions-row button {
+  min-height: 38px;
+  padding: 0 13px;
 }
 
 .secondary-button {
@@ -462,12 +467,12 @@ button:disabled {
 }
 
 .mini-button {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 30px;
+  padding: 0 9px;
   border: 1px solid var(--accent);
   background: transparent;
   color: var(--accent);
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .mini-button:hover {
@@ -524,7 +529,7 @@ button:disabled {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
-  padding: 14px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
 }
@@ -532,12 +537,24 @@ button:disabled {
 .quick-filters,
 .toolbar-actions,
 .lead-counter,
-.lead-actions,
 .template-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.lead-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.lead-actions .mini-button,
+.lead-actions .favorite-button {
+  width: 100%;
 }
 
 .select-field,
@@ -567,15 +584,15 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  padding: 14px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--line);
 }
 
 .executive-card {
-  min-height: 88px;
+  min-height: 76px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 8px;
-  padding: 13px;
+  padding: 11px;
   background: rgba(255, 255, 255, 0.045);
 }
 
@@ -598,7 +615,7 @@ button:disabled {
   display: block;
   margin-top: 7px;
   color: #ffffff;
-  font-size: 22px;
+  font-size: 19px;
 }
 
 .executive-card small {
@@ -628,7 +645,7 @@ button:disabled {
   display: grid;
   grid-template-columns: 1.15fr 1fr 1.25fr;
   gap: 12px;
-  padding: 14px 24px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -741,8 +758,8 @@ button:disabled {
 .solution-strip {
   display: grid;
   grid-template-columns: 0.86fr 1.1fr 0.82fr;
-  gap: 12px;
-  padding: 14px 24px;
+  gap: 10px;
+  padding: 12px 24px;
   border-bottom: 1px solid var(--line);
   background:
     linear-gradient(90deg, rgba(120, 217, 163, 0.08), transparent 58%),
@@ -754,10 +771,10 @@ button:disabled {
 }
 
 .solution-card {
-  min-height: 92px;
+  min-height: 76px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 14px;
+  padding: 12px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
     rgba(7, 8, 7, 0.72);
@@ -782,13 +799,13 @@ button:disabled {
   display: block;
   margin-top: 8px;
   color: #ffffff;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.12;
 }
 
 .solution-card small {
   display: block;
-  margin-top: 8px;
+  margin-top: 6px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
@@ -796,24 +813,26 @@ button:disabled {
 }
 
 .table-wrap {
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 292px);
   overflow: auto;
   scrollbar-color: var(--accent) #111111;
 }
 
 table {
   width: 100%;
-  min-width: 1480px;
+  min-width: 1360px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 th,
 td {
-  padding: 13px 14px;
+  padding: 10px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   text-align: left;
   vertical-align: top;
-  font-size: 13px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 th {
@@ -827,6 +846,71 @@ th {
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 132px;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 126px;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  width: 230px;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 160px;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  width: 142px;
+}
+
+th:nth-child(6),
+td:nth-child(6) {
+  width: 82px;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+  width: 46px;
+}
+
+th:nth-child(8),
+td:nth-child(8) {
+  width: 92px;
+}
+
+th:nth-child(9),
+td:nth-child(9) {
+  width: 108px;
+}
+
+th:nth-child(10),
+td:nth-child(10) {
+  width: 210px;
+}
+
+th:nth-child(11),
+td:nth-child(11) {
+  width: 178px;
+}
+
+th:nth-child(12),
+td:nth-child(12) {
+  width: 154px;
+}
+
+th:nth-child(13),
+td:nth-child(13) {
+  width: 88px;
 }
 
 tbody tr:hover {
@@ -864,8 +948,8 @@ td:first-child {
   align-items: center;
   width: fit-content;
   border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 3px 7px;
+  font-size: 10px;
   font-weight: 900;
   line-height: 1.1;
   white-space: nowrap;
@@ -901,7 +985,7 @@ td:first-child {
 }
 
 .tag {
-  margin: 2px 4px 2px 0;
+  margin: 1px 3px 1px 0;
   border: 1px solid rgba(240, 200, 90, 0.24);
   background: rgba(240, 200, 90, 0.08);
   color: var(--accent-strong);
@@ -923,20 +1007,22 @@ td:first-child {
 }
 
 .status-select {
-  min-height: 34px;
+  min-height: 32px;
   padding: 0 8px;
   font-size: 12px;
 }
 
 .note-input {
-  margin-top: 7px;
-  min-width: 170px;
+  margin-top: 6px;
+  min-width: 0;
+  min-height: 42px;
+  max-height: 58px;
   font-size: 12px;
 }
 
 .favorite-button {
-  min-width: 34px;
-  min-height: 32px;
+  min-width: 30px;
+  min-height: 30px;
   padding: 0;
   border: 1px solid rgba(240, 200, 90, 0.32);
   background: transparent;
@@ -955,9 +1041,17 @@ td:first-child {
   text-decoration: none;
 }
 
+.action-title {
+  display: block;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
 .seller-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 12px;
   padding: 14px;
 }
