@@ -539,7 +539,6 @@ button:disabled {
 .commercial-toolbar[hidden],
 .base-vortech-panel[hidden],
 .executive-grid[hidden],
-.lead-counter[hidden],
 .daily-list[hidden],
 .seller-list[hidden] {
   display: none;
@@ -611,8 +610,7 @@ button:disabled {
 }
 
 .quick-filters,
-.toolbar-actions,
-.lead-counter {
+.toolbar-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -698,21 +696,6 @@ button:disabled {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
-}
-
-.lead-counter {
-  padding: 11px 24px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(120, 217, 163, 0.055);
-}
-
-.lead-counter span {
-  border: 1px solid rgba(120, 217, 163, 0.18);
-  border-radius: 999px;
-  padding: 5px 9px;
-  color: #dff7e9;
-  font-size: 12px;
-  font-weight: 800;
 }
 
 .daily-list {
@@ -1310,7 +1293,6 @@ td:first-child {
   .commercial-toolbar,
   .base-vortech-panel,
   .executive-grid,
-  .lead-counter,
   .daily-list {
     padding: 16px;
   }

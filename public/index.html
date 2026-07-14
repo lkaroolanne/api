@@ -174,14 +174,6 @@
             </article>
           </div>
 
-          <div class="lead-counter" id="lead-counter" hidden>
-            <span id="contador-total">Total da busca: 0</span>
-            <span id="contador-visivel">Visiveis: 0</span>
-            <span id="contador-quentes">Quentes visiveis: 0</span>
-            <span id="contador-contatos">Com telefone/e-mail: 0</span>
-            <span id="contador-base-vortech">Ja na base: 0</span>
-          </div>
-
           <div class="daily-list" id="daily-list" hidden>
             <div class="daily-head">
               <div>
@@ -365,7 +357,6 @@
     const modoVendedor = $("#modo-vendedor");
     const botaoLimparFiltros = $("#limpar-filtros");
     const gradeExecutiva = $("#executive-grid");
-    const leadCounter = $("#lead-counter");
     const baseVortechPanel = $("#base-vortech-panel");
     const baseVortechStatus = $("#base-vortech-status");
     const baseVortechTexto = $("#base-vortech-texto");
@@ -973,9 +964,6 @@
       const quentes = empresasAtuais.filter((lead) => lead.prioridade === "Lead quente").length;
       const enriquecer = empresasAtuais.filter((lead) => !temTelefone(lead) || !temEmail(lead)).length;
       const qualidade = total ? Math.round(((comTelefone + comEmail + quentes) / (total * 3)) * 100) : 0;
-      const visiveisQuentes = empresasVisiveis.filter((lead) => lead.prioridade === "Lead quente").length;
-      const visiveisContato = empresasVisiveis.filter((lead) => temTelefone(lead) || temEmail(lead)).length;
-      const visiveisBaseVortech = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
       let estrategia = "Enriquecimento pela API";
 
       if (comTelefone) estrategia = "Ligacao + WhatsApp";
@@ -989,11 +977,6 @@
       $("#exec-sem-email").textContent = `${formatarNumero(semEmail)} sem e-mail`;
       $("#exec-estrategia").textContent = estrategia;
       $("#exec-qualidade").textContent = `Qualidade da base: ${qualidade}%`;
-      $("#contador-total").textContent = `Total da busca: ${formatarNumero(buscaAtual.total || total)}`;
-      $("#contador-visivel").textContent = `Visiveis: ${formatarNumero(visiveis)}`;
-      $("#contador-quentes").textContent = `Quentes visiveis: ${formatarNumero(visiveisQuentes)}`;
-      $("#contador-contatos").textContent = `Com telefone/e-mail: ${formatarNumero(visiveisContato)}`;
-      $("#contador-base-vortech").textContent = `Ja na base: ${formatarNumero(visiveisBaseVortech)}`;
     }
 
     function opcoesStatus(statusAtual, chave) {
@@ -1035,7 +1018,6 @@
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
       gradeExecutiva.hidden = !empresasAtuais.length;
-      leadCounter.hidden = !empresasAtuais.length;
       botaoListaDia.disabled = !empresasAtuais.length;
       botaoCopiarVisiveis.disabled = !empresasVisiveis.length;
 
@@ -1386,7 +1368,6 @@
         solutionStrip.hidden = true;
         barraComercial.hidden = true;
         gradeExecutiva.hidden = true;
-        leadCounter.hidden = true;
         dailyList.hidden = true;
         resumo.textContent = "Erro na consulta";
         mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
@@ -1766,7 +1747,6 @@
       solutionStrip.hidden = true;
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
-      leadCounter.hidden = true;
       dailyList.hidden = true;
       listaVendedor.hidden = true;
       document.querySelector(".table-wrap").hidden = false;
