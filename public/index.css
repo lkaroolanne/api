@@ -630,29 +630,6 @@ button:disabled {
   width: 100%;
 }
 
-.select-field,
-.seller-toggle {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.select-field select {
-  min-width: 190px;
-  min-height: 36px;
-  padding: 0 10px;
-}
-
-.seller-toggle input {
-  width: 18px;
-  min-height: 18px;
-  accent-color: var(--accent);
-}
-
 .executive-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1273,9 +1250,7 @@ td:first-child {
   .pagination-actions,
   .pagination-actions button,
   .toolbar-actions,
-  .toolbar-actions button,
-  .select-field,
-  .select-field select {
+  .toolbar-actions button {
     width: 100%;
   }
 

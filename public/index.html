@@ -131,22 +131,6 @@
               <button class="filter-chip" type="button" data-filtro="quentes">Leads quentes</button>
             </div>
             <div class="toolbar-actions">
-              <label class="select-field">
-                Ordenar
-                <select id="ordenacao">
-                  <option value="score">Score</option>
-                  <option value="empresa">Nome da empresa</option>
-                  <option value="cidade">Cidade</option>
-                  <option value="uf">UF</option>
-                  <option value="telefone">Com telefone primeiro</option>
-                  <option value="email">Com e-mail primeiro</option>
-                  <option value="status">Status</option>
-                </select>
-              </label>
-              <label class="seller-toggle">
-                <input id="modo-vendedor" type="checkbox">
-                <span>Modo vendedor</span>
-              </label>
               <button id="limpar-filtros" class="ghost-button compact-button" type="button">Limpar filtros</button>
             </div>
           </div>
@@ -248,7 +232,6 @@
               </tbody>
             </table>
           </div>
-          <div id="modo-vendedor-lista" class="seller-list" hidden></div>
         </section>
       </section>
     </div>
@@ -330,7 +313,6 @@
     const resumo = $("#resumo");
     const mensagem = $("#mensagem");
     const tabela = $("#tabela-resultados");
-    const listaVendedor = $("#modo-vendedor-lista");
     const listaAtalhos = $("#lista-atalhos");
     const sugestoesBusca = $("#sugestoes-busca");
     const metricaTotal = $("#metrica-total");
@@ -353,8 +335,6 @@
     const paginaProxima = $("#pagina-proxima");
     const barraComercial = $("#commercial-toolbar");
     const filtrosRapidos = $("#filtros-rapidos");
-    const ordenacao = $("#ordenacao");
-    const modoVendedor = $("#modo-vendedor");
     const botaoLimparFiltros = $("#limpar-filtros");
     const gradeExecutiva = $("#executive-grid");
     const baseVortechPanel = $("#base-vortech-panel");
@@ -398,8 +378,6 @@
     let totalBaseOnline = null;
     let atalhosVisiveis = atalhos;
     let filtroAtual = "todos";
-    let ordenacaoAtual = "score";
-    let modoVendedorAtivo = false;
     let estadoLocal = carregarEstadoLocal();
     let indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
 
@@ -922,17 +900,7 @@
     }
 
     function ordenarLeads(lista) {
-      const ordenados = [...lista];
-      const porTexto = (campo) => ordenados.sort((a, b) => normalizarTexto(a[campo]).localeCompare(normalizarTexto(b[campo])));
-
-      if (ordenacaoAtual === "empresa") return porTexto("razaoSocial");
-      if (ordenacaoAtual === "cidade") return porTexto("cidadeComercial");
-      if (ordenacaoAtual === "uf") return porTexto("ufComercial");
-      if (ordenacaoAtual === "telefone") return ordenados.sort((a, b) => Number(temTelefone(b)) - Number(temTelefone(a)) || b.score - a.score);
-      if (ordenacaoAtual === "email") return ordenados.sort((a, b) => Number(temEmail(b)) - Number(temEmail(a)) || b.score - a.score);
-      if (ordenacaoAtual === "status") return porTexto("status");
-
-      return ordenados.sort((a, b) => b.score - a.score);
+      return [...lista].sort((a, b) => b.score - a.score);
     }
 
     function detectarDuplicidades(lista) {
@@ -1023,14 +991,11 @@
 
       if (!empresasAtuais.length) {
         tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>`;
-        listaVendedor.hidden = true;
-        listaVendedor.innerHTML = "";
         return;
       }
 
       if (!empresasVisiveis.length) {
         tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum lead atende aos filtros atuais.</td></tr>`;
-        listaVendedor.innerHTML = '<div class="empty-state">Nenhum lead visivel no modo vendedor.</div>';
       } else {
         tabela.innerHTML = empresasVisiveis.map((lead) => {
           const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
@@ -1057,27 +1022,9 @@
           `;
         }).join("");
 
-        listaVendedor.innerHTML = empresasVisiveis.map((lead) => {
-          const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
-          return `
-            <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""} ${lead.baseVortechMatch ? "is-base-match" : ""}">
-              <div>
-                <strong>${escaparHtml(lead.nomeFantasia || lead.razaoSocial)}</strong>
-                <span>${escaparHtml(lead.cidadeComercial)}/${escaparHtml(lead.ufComercial)}</span>
-              </div>
-              <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
-              ${lead.baseVortechMatch ? `<span class="base-match-badge">Ja na base: ${escaparHtml(lead.baseVortechMatch.tipo)}</span>` : ""}
-              <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
-              ${opcoesStatus(lead.status, lead.chaveLocal)}
-              <textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtmlBruto(lead.observacao)}</textarea>
-              ${renderizarAcoesLead(lead, index)}
-            </article>
-          `;
-        }).join("");
       }
 
-      listaVendedor.hidden = !modoVendedorAtivo;
-      document.querySelector(".table-wrap").hidden = modoVendedorAtivo;
+      document.querySelector(".table-wrap").hidden = false;
     }
 
     async function carregarMetricas() {
@@ -1480,50 +1427,6 @@
       mensagem.textContent = "Anotacao salva localmente.";
     });
 
-    listaVendedor.addEventListener("click", (event) => {
-      const copiar = event.target.closest("[data-copiar]");
-      if (copiar) {
-        copiarTexto(textoContato(empresasAtuais[Number(copiar.dataset.copiar)]), "Contato copiado para a area de transferencia.");
-        return;
-      }
-
-      const email = event.target.closest("[data-email]");
-      if (email) {
-        copiarTexto(mensagemEmail(empresasAtuais[Number(email.dataset.email)]), "Mensagem de e-mail copiada.");
-        return;
-      }
-
-      const favorito = event.target.closest("[data-favorito]");
-      if (favorito) {
-        const indice = Number(favorito.dataset.favorito);
-        const lead = empresasAtuais[indice];
-        estadoLocal.favoritos[lead.chaveLocal] = !lead.favorito;
-        if (!estadoLocal.favoritos[lead.chaveLocal]) delete estadoLocal.favoritos[lead.chaveLocal];
-        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
-        empresasAtuais[indice] = enriquecerEmpresa(lead);
-        aplicarFiltrosERenderizar();
-        mensagem.textContent = "Favorito salvo.";
-      }
-    });
-
-    listaVendedor.addEventListener("change", (event) => {
-      const seletor = event.target.closest("[data-status]");
-      if (!seletor) return;
-      estadoLocal.status[seletor.dataset.status] = seletor.value;
-      salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
-      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
-      aplicarFiltrosERenderizar();
-      mensagem.textContent = "Status do lead salvo.";
-    });
-
-    listaVendedor.addEventListener("input", (event) => {
-      const nota = event.target.closest("[data-nota]");
-      if (!nota) return;
-      estadoLocal.notas[nota.dataset.nota] = nota.value;
-      salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
-      mensagem.textContent = "Anotacao salva localmente.";
-    });
-
     filtrosRapidos.addEventListener("click", (event) => {
       const botao = event.target.closest("[data-filtro]");
       if (!botao) return;
@@ -1533,20 +1436,8 @@
       aplicarFiltrosERenderizar();
     });
 
-    ordenacao.addEventListener("change", () => {
-      ordenacaoAtual = ordenacao.value;
-      aplicarFiltrosERenderizar();
-    });
-
-    modoVendedor.addEventListener("change", () => {
-      modoVendedorAtivo = modoVendedor.checked;
-      aplicarFiltrosERenderizar();
-    });
-
     botaoLimparFiltros.addEventListener("click", () => {
       filtroAtual = "todos";
-      ordenacaoAtual = "score";
-      ordenacao.value = "score";
       filtrosRapidos.querySelectorAll("[data-filtro]").forEach((item) => item.classList.toggle("is-active", item.dataset.filtro === "todos"));
       aplicarFiltrosERenderizar();
       mensagem.textContent = "Filtros limpos.";
@@ -1748,7 +1639,6 @@
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
       dailyList.hidden = true;
-      listaVendedor.hidden = true;
       document.querySelector(".table-wrap").hidden = false;
       resumo.textContent = "Informe um CNAE ou palavra-chave";
       mensagem.textContent = mensagemApiPadrao;
