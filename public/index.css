@@ -537,6 +537,7 @@ button:disabled {
 
 .suggestion-row[hidden],
 .commercial-toolbar[hidden],
+.base-vortech-panel[hidden],
 .executive-grid[hidden],
 .lead-counter[hidden],
 .ranking-grid[hidden],
@@ -584,6 +585,43 @@ button:disabled {
   padding: 12px 24px;
   border-bottom: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.025);
+}
+
+.base-vortech-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.45fr) minmax(320px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--line);
+  background:
+    linear-gradient(90deg, rgba(120, 217, 163, 0.08), transparent 64%),
+    rgba(255, 255, 255, 0.025);
+}
+
+.base-vortech-panel strong {
+  display: block;
+  color: #ffffff;
+  font-size: 14px;
+}
+
+.base-vortech-panel small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.base-vortech-panel textarea {
+  min-height: 72px;
+  max-height: 120px;
+}
+
+.base-vortech-actions {
+  display: grid;
+  gap: 8px;
+  min-width: 136px;
 }
 
 .quick-filters,
@@ -1006,6 +1044,10 @@ tbody tr:hover {
   box-shadow: inset 3px 0 0 var(--success);
 }
 
+.lead-base-row {
+  box-shadow: inset 3px 0 0 #ffb15c;
+}
+
 tbody tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.018);
 }
@@ -1028,7 +1070,8 @@ td:first-child {
 .tag,
 .contact-badge,
 .enrich-badge,
-.dup-badge {
+.dup-badge,
+.base-match-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -1089,6 +1132,13 @@ td:first-child {
   border: 1px solid rgba(255, 169, 77, 0.28);
   background: rgba(255, 169, 77, 0.11);
   color: #ffd6aa;
+}
+
+.base-match-badge {
+  margin-top: 6px;
+  border: 1px solid rgba(255, 177, 92, 0.4);
+  background: rgba(255, 177, 92, 0.13);
+  color: #ffd3a1;
 }
 
 .status-select {
@@ -1153,6 +1203,10 @@ td:first-child {
 .seller-card.is-hot {
   border-color: rgba(120, 217, 163, 0.36);
   background: linear-gradient(145deg, rgba(120, 217, 163, 0.1), rgba(8, 9, 8, 0.92));
+}
+
+.seller-card.is-base-match {
+  border-color: rgba(255, 177, 92, 0.42);
 }
 
 .seller-card strong {
@@ -1297,6 +1351,7 @@ td:first-child {
   .solution-strip,
   .insight-bar,
   .commercial-toolbar,
+  .base-vortech-panel,
   .executive-grid,
   .ranking-grid {
     grid-template-columns: 1fr;
@@ -1334,6 +1389,7 @@ td:first-child {
   .solution-strip,
   .insight-bar,
   .commercial-toolbar,
+  .base-vortech-panel,
   .executive-grid,
   .lead-counter,
   .ranking-grid,

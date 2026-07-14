@@ -89,6 +89,9 @@
               <button id="atualizar-lote" class="ghost-button" type="button" disabled>
                 Enriquecer API
               </button>
+              <button id="base-vortech-toggle" class="ghost-button" type="button">
+                Base Vortech
+              </button>
               <button id="exportar" class="secondary-button" type="button" disabled>
                 Exportar Excel
               </button>
@@ -99,6 +102,24 @@
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
+
+          <div class="base-vortech-panel" id="base-vortech-panel" hidden>
+            <div>
+              <p class="eyebrow">Base Vortech</p>
+              <strong id="base-vortech-status">Nenhuma base carregada</strong>
+              <small>Cole linhas copiadas do Excel com CNPJ e razao social para evitar contato repetido.</small>
+            </div>
+            <textarea
+              id="base-vortech-texto"
+              rows="3"
+              placeholder="Cole aqui: CNPJ; Razao Social&#10;12.345.678/0001-90; Empresa Exemplo LTDA"
+            ></textarea>
+            <div class="base-vortech-actions">
+              <button id="base-vortech-importar" class="secondary-button compact-button" type="button">Importar base</button>
+              <button id="base-vortech-limpar" class="ghost-button compact-button" type="button">Limpar base</button>
+              <button id="base-vortech-fechar" class="ghost-button compact-button" type="button">Fechar</button>
+            </div>
+          </div>
 
           <div class="commercial-toolbar" id="commercial-toolbar" hidden>
             <div class="quick-filters" id="filtros-rapidos">
@@ -158,6 +179,7 @@
             <span id="contador-visivel">Visiveis: 0</span>
             <span id="contador-quentes">Quentes visiveis: 0</span>
             <span id="contador-contatos">Com telefone/e-mail: 0</span>
+            <span id="contador-base-vortech">Ja na base: 0</span>
           </div>
 
           <div class="ranking-grid" id="ranking-grid" hidden>
@@ -325,6 +347,7 @@
     const botaoLimpar = $("#limpar");
     const botaoExportar = $("#exportar");
     const botaoAtualizarLote = $("#atualizar-lote");
+    const botaoBaseVortechToggle = $("#base-vortech-toggle");
     const botaoListaDia = $("#lista-dia");
     const botaoCopiarVisiveis = $("#copiar-visiveis");
     const resumo = $("#resumo");
@@ -362,6 +385,12 @@
     const rankingLocal = $("#ranking-local");
     const rankingCnae = $("#ranking-cnae");
     const templatesAbordagem = $("#templates-abordagem");
+    const baseVortechPanel = $("#base-vortech-panel");
+    const baseVortechStatus = $("#base-vortech-status");
+    const baseVortechTexto = $("#base-vortech-texto");
+    const baseVortechImportar = $("#base-vortech-importar");
+    const baseVortechLimpar = $("#base-vortech-limpar");
+    const baseVortechFechar = $("#base-vortech-fechar");
     const dailyList = $("#daily-list");
     const dailyListContent = $("#daily-list-content");
     const fecharListaDia = $("#fechar-lista-dia");
@@ -370,7 +399,8 @@
       favoritos: "vortech.favoritos",
       status: "vortech.status",
       notas: "vortech.notas",
-      historico: "vortech.historico"
+      historico: "vortech.historico",
+      baseVortech: "vortech.baseVortech"
     };
 
     const STATUS_LEAD = ["Novo", "Contatado", "Sem resposta", "Interessado", "Descartar"];
@@ -399,6 +429,7 @@
     let ordenacaoAtual = "score";
     let modoVendedorAtivo = false;
     let estadoLocal = carregarEstadoLocal();
+    let indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
 
     mensagem.textContent = mensagemApiPadrao;
 
@@ -415,7 +446,8 @@
         favoritos: lerJsonLocal(STORAGE_KEYS.favoritos, {}),
         status: lerJsonLocal(STORAGE_KEYS.status, {}),
         notas: lerJsonLocal(STORAGE_KEYS.notas, {}),
-        historico: lerJsonLocal(STORAGE_KEYS.historico, [])
+        historico: lerJsonLocal(STORAGE_KEYS.historico, []),
+        baseVortech: lerJsonLocal(STORAGE_KEYS.baseVortech, [])
       };
     }
 
@@ -463,6 +495,98 @@
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase();
+    }
+
+    function normalizarRazao(valor) {
+      return normalizarTexto(valor)
+        .replace(/&/g, " e ")
+        .replace(/[^a-z0-9 ]+/g, " ")
+        .replace(/\b(ltda|limitada|me|epp|eireli|sa|s a|comercio|comercial|industria|industria e comercio|servicos|servico|matriz|filial)\b/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function tokensRazao(valor) {
+      return normalizarRazao(valor)
+        .split(" ")
+        .filter((token) => token.length >= 4);
+    }
+
+    function montarIndiceBaseVortech(base = []) {
+      const cnpjs = new Map();
+      const nomes = new Map();
+      const porToken = new Map();
+      const itens = [];
+
+      base.forEach((item) => {
+        const cnpj = limparNumeros(item.cnpj);
+        const nome = normalizarRazao(item.razaoSocial || item.nome || item.nomeFantasia);
+
+        if (!cnpj && !nome) return;
+
+        const registro = {
+          cnpj,
+          nome,
+          razaoSocial: item.razaoSocial || item.nome || item.nomeFantasia || ""
+        };
+
+        itens.push(registro);
+        if (cnpj) cnpjs.set(cnpj, registro);
+        if (nome) nomes.set(nome, registro);
+
+        tokensRazao(nome).forEach((token) => {
+          if (!porToken.has(token)) porToken.set(token, []);
+          porToken.get(token).push(registro);
+        });
+      });
+
+      return { cnpjs, nomes, porToken, itens };
+    }
+
+    function similaridadeRazao(nomeLead, registro) {
+      const tokensLead = tokensRazao(nomeLead);
+      const tokensBase = tokensRazao(registro.nome);
+
+      if (!tokensLead.length || !tokensBase.length) return 0;
+
+      const baseSet = new Set(tokensBase);
+      const comuns = tokensLead.filter((token) => baseSet.has(token)).length;
+      return comuns / Math.min(tokensLead.length, tokensBase.length);
+    }
+
+    function verificarBaseVortech(empresa) {
+      const cnpj = limparNumeros(empresa?.cnpj);
+      const nomeLead = normalizarRazao(empresa?.razaoSocial || empresa?.nomeFantasia);
+
+      if (cnpj && indiceBaseVortech.cnpjs.has(cnpj)) {
+        const item = indiceBaseVortech.cnpjs.get(cnpj);
+        return { tipo: "CNPJ", razaoSocial: item.razaoSocial };
+      }
+
+      if (nomeLead && indiceBaseVortech.nomes.has(nomeLead)) {
+        const item = indiceBaseVortech.nomes.get(nomeLead);
+        return { tipo: "Razao social", razaoSocial: item.razaoSocial };
+      }
+
+      const candidatos = new Map();
+      tokensRazao(nomeLead).forEach((token) => {
+        (indiceBaseVortech.porToken.get(token) || []).forEach((item) => {
+          candidatos.set(item.nome, item);
+        });
+      });
+
+      for (const item of candidatos.values()) {
+        const nomeBase = item.nome;
+        const encaixa = nomeLead.length >= 10 && nomeBase.length >= 10 &&
+          (nomeLead.includes(nomeBase) || nomeBase.includes(nomeLead));
+        const similar = similaridadeRazao(nomeLead, item) >= 0.75;
+
+        if (encaixa || similar) {
+          return { tipo: "Nome parecido", razaoSocial: item.razaoSocial };
+        }
+      }
+
+      return null;
     }
 
     function chaveEmpresa(empresa) {
@@ -573,6 +697,7 @@
     function enriquecerEmpresa(empresa) {
       const chave = chaveEmpresa(empresa);
       const score = calcularScore(empresa);
+      const baseVortechMatch = verificarBaseVortech(empresa);
 
       return {
         ...empresa,
@@ -584,6 +709,7 @@
         favorito: Boolean(estadoLocal.favoritos[chave]),
         status: estadoLocal.status[chave] || "Novo",
         observacao: estadoLocal.notas[chave] || "",
+        baseVortechMatch,
         telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
         cidadeComercial: campoCidade(empresa),
         ufComercial: campoUf(empresa)
@@ -601,7 +727,8 @@
         `CNAE: ${texto(lead.cnaePrincipal)}`,
         `Score: ${lead.score} - ${lead.prioridade}`,
         `Acao sugerida: ${lead.acaoSugerida}`,
-        `Tags: ${lead.tags.join(", ") || "-"}`
+        `Tags: ${lead.tags.join(", ") || "-"}`,
+        `Base Vortech: ${lead.baseVortechMatch ? `Ja consta (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada"}`
       ].join("\n");
     }
 
@@ -867,6 +994,7 @@
       const qualidade = total ? Math.round(((comTelefone + comEmail + quentes) / (total * 3)) * 100) : 0;
       const visiveisQuentes = empresasVisiveis.filter((lead) => lead.prioridade === "Lead quente").length;
       const visiveisContato = empresasVisiveis.filter((lead) => temTelefone(lead) || temEmail(lead)).length;
+      const visiveisBaseVortech = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
       let estrategia = "Enriquecimento pela API";
 
       if (comTelefone) estrategia = "Ligacao + WhatsApp";
@@ -884,6 +1012,7 @@
       $("#contador-visivel").textContent = `Visiveis: ${formatarNumero(visiveis)}`;
       $("#contador-quentes").textContent = `Quentes visiveis: ${formatarNumero(visiveisQuentes)}`;
       $("#contador-contatos").textContent = `Com telefone/e-mail: ${formatarNumero(visiveisContato)}`;
+      $("#contador-base-vortech").textContent = `Ja na base: ${formatarNumero(visiveisBaseVortech)}`;
     }
 
     function atualizarRankings() {
@@ -985,10 +1114,13 @@
         tabela.innerHTML = empresasVisiveis.map((lead) => {
           const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
           const contatoCompleto = temTelefone(lead) && temEmail(lead);
+          const badgeBaseVortech = lead.baseVortechMatch
+            ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.tipo)}</span>`
+            : "";
           return `
-            <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""}" data-index="${index}">
+            <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""} ${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
               <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${duplicados[lead.chaveLocal] ? '<span class="dup-badge">Possivel duplicidade</span>' : ""}</td>
-              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}</td>
+              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
               <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
@@ -1007,12 +1139,13 @@
         listaVendedor.innerHTML = empresasVisiveis.map((lead) => {
           const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
           return `
-            <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""}">
+            <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""} ${lead.baseVortechMatch ? "is-base-match" : ""}">
               <div>
                 <strong>${escaparHtml(lead.nomeFantasia || lead.razaoSocial)}</strong>
                 <span>${escaparHtml(lead.cidadeComercial)}/${escaparHtml(lead.ufComercial)}</span>
               </div>
               <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
+              ${lead.baseVortechMatch ? `<span class="base-match-badge">Ja na base: ${escaparHtml(lead.baseVortechMatch.tipo)}</span>` : ""}
               <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
               ${opcoesStatus(lead.status, lead.chaveLocal)}
               <textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtmlBruto(lead.observacao)}</textarea>
@@ -1186,6 +1319,51 @@
       `).join("");
     }
 
+    function atualizarStatusBaseVortech() {
+      const total = estadoLocal.baseVortech.length;
+      baseVortechStatus.textContent = total
+        ? `${formatarNumero(total)} registro(s) carregados para cruzamento`
+        : "Nenhuma base carregada";
+    }
+
+    function escolherRazaoSocial(partes, linha, cnpj) {
+      const candidatos = partes
+        .map((parte) => String(parte || "").trim())
+        .filter((parte) => parte && (!cnpj || !limparNumeros(parte).includes(limparNumeros(cnpj))))
+        .filter((parte) => /[a-z]/.test(normalizarTexto(parte)))
+        .filter((parte) => !/^(cnpj|razao|razão|nome|email|telefone|cidade|uf)$/i.test(parte));
+
+      return candidatos.sort((a, b) => b.length - a.length)[0] || linha.replace(cnpj || "", "").trim();
+    }
+
+    function importarBaseVortechTexto(valor) {
+      const registros = new Map();
+
+      String(valor || "")
+        .split(/\r?\n/)
+        .map((linha) => linha.trim())
+        .filter(Boolean)
+        .forEach((linha) => {
+          if (/^cnpj[\t;, ]/i.test(linha) || /^razao|^razão/i.test(linha)) return;
+
+          const cnpj = (linha.match(/\d{2}\D?\d{3}\D?\d{3}\D?\d{4}\D?\d{2}/) || [""])[0];
+          const cnpjLimpo = limparNumeros(cnpj);
+          const partes = linha.split(/\t|;|,/);
+          const razaoSocial = escolherRazaoSocial(partes, linha, cnpj);
+          const nomeNormalizado = normalizarRazao(razaoSocial);
+
+          if (!cnpjLimpo && !nomeNormalizado) return;
+
+          const chave = cnpjLimpo || nomeNormalizado;
+          registros.set(chave, {
+            cnpj: cnpjLimpo,
+            razaoSocial: razaoSocial || ""
+          });
+        });
+
+      return Array.from(registros.values());
+    }
+
     async function executarBusca(valor, tipo = "auto", pagina = 1) {
       const termo = String(valor || "").trim();
 
@@ -1305,9 +1483,13 @@
         estadoLocal.favoritos = {};
         estadoLocal.status = {};
         estadoLocal.notas = {};
+        estadoLocal.baseVortech = [];
         salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
         salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
         salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
+        salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
+        indiceBaseVortech = montarIndiceBaseVortech([]);
+        atualizarStatusBaseVortech();
         renderizarLinhas(empresasAtuais);
         mensagem.textContent = "Favoritos, status e anotacoes locais foram resetados.";
         return;
@@ -1451,6 +1633,43 @@
       mensagem.textContent = "Filtros limpos.";
     });
 
+    botaoBaseVortechToggle.addEventListener("click", () => {
+      baseVortechPanel.hidden = !baseVortechPanel.hidden;
+      atualizarStatusBaseVortech();
+    });
+
+    baseVortechFechar.addEventListener("click", () => {
+      baseVortechPanel.hidden = true;
+    });
+
+    baseVortechImportar.addEventListener("click", () => {
+      const registros = importarBaseVortechTexto(baseVortechTexto.value);
+
+      if (!registros.length) {
+        mensagem.textContent = "Cole pelo menos uma linha com CNPJ ou razao social da base Vortech.";
+        return;
+      }
+
+      estadoLocal.baseVortech = registros;
+      salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
+      indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
+      atualizarStatusBaseVortech();
+      baseVortechTexto.value = "";
+      mensagem.textContent = `Base Vortech carregada com ${formatarNumero(registros.length)} registro(s). Leads repetidos foram sinalizados.`;
+    });
+
+    baseVortechLimpar.addEventListener("click", () => {
+      estadoLocal.baseVortech = [];
+      salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
+      indiceBaseVortech = montarIndiceBaseVortech([]);
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
+      atualizarStatusBaseVortech();
+      mensagem.textContent = "Base Vortech local limpa.";
+    });
+
     botaoAtualizarLote.addEventListener("click", async () => {
       const total = empresasAtuais.length;
       let atualizados = 0;
@@ -1494,7 +1713,7 @@
     function exportarVisiveis() {
       const cabecalho = [
         "CNPJ", "Razao social", "Nome fantasia", "Telefone", "Email", "Cidade", "UF", "CNAE",
-        "Score", "Prioridade", "Acao sugerida", "Tags", "Status", "Observacao", "Mensagem WhatsApp", "Mensagem E-mail"
+        "Score", "Prioridade", "Acao sugerida", "Tags", "Status", "Observacao", "Base Vortech", "Mensagem WhatsApp", "Mensagem E-mail"
       ];
       const linhas = empresasVisiveis.map((lead) => [
         formatarCnpj(lead.cnpj),
@@ -1511,6 +1730,7 @@
         lead.tags.join(", "),
         lead.status,
         lead.observacao,
+        lead.baseVortechMatch ? `Ja na base (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada",
         mensagemWhatsapp(lead),
         mensagemEmail(lead)
       ].map(csvValor).join(";"));
@@ -1627,6 +1847,7 @@
 
     renderizarAtalhos();
     renderizarTemplates();
+    atualizarStatusBaseVortech();
     carregarMetricas();
   </script>
 </body>
