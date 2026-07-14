@@ -104,7 +104,8 @@
             <div class="quick-filters" id="filtros-rapidos">
               <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
               <button class="filter-chip" type="button" data-filtro="telefone">So com telefone</button>
-              <button class="filter-chip" type="button" data-filtro="email">So com e-mail</button>
+              <button class="filter-chip" type="button" data-filtro="email">Com e-mail</button>
+              <button class="filter-chip" type="button" data-filtro="sem-email">Sem e-mail</button>
               <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
               <button class="filter-chip" type="button" data-filtro="quentes">Leads quentes</button>
             </div>
@@ -138,12 +139,12 @@
             <article class="executive-card">
               <span>Telefone</span>
               <strong id="exec-telefone">0</strong>
-              <small id="exec-email">0 com e-mail</small>
+              <small id="exec-completo">0 com telefone + e-mail</small>
             </article>
             <article class="executive-card">
-              <span>Telefone + e-mail</span>
-              <strong id="exec-completo">0</strong>
-              <small id="exec-enriquecer">0 precisam enriquecer</small>
+              <span>E-mail</span>
+              <strong id="exec-email">0</strong>
+              <small id="exec-sem-email">0 sem e-mail</small>
             </article>
             <article class="executive-card is-premium">
               <span>Estrategia</span>
@@ -811,6 +812,7 @@
       return lista.filter((lead) => {
         if (filtroAtual === "telefone") return temTelefone(lead);
         if (filtroAtual === "email") return temEmail(lead);
+        if (filtroAtual === "sem-email") return !temEmail(lead);
         if (filtroAtual === "completo") return temTelefone(lead) && temEmail(lead);
         if (filtroAtual === "sem-contato") return !temTelefone(lead) && !temEmail(lead);
         if (filtroAtual === "quentes") return lead.prioridade === "Lead quente";
@@ -858,6 +860,7 @@
       const visiveis = empresasVisiveis.length;
       const comTelefone = empresasAtuais.filter(temTelefone).length;
       const comEmail = empresasAtuais.filter(temEmail).length;
+      const semEmail = Math.max(total - comEmail, 0);
       const completos = empresasAtuais.filter((lead) => temTelefone(lead) && temEmail(lead)).length;
       const quentes = empresasAtuais.filter((lead) => lead.prioridade === "Lead quente").length;
       const enriquecer = empresasAtuais.filter((lead) => !temTelefone(lead) || !temEmail(lead)).length;
@@ -866,16 +869,15 @@
       const visiveisContato = empresasVisiveis.filter((lead) => temTelefone(lead) || temEmail(lead)).length;
       let estrategia = "Enriquecimento pela API";
 
-      if (quentes >= Math.max(3, total * 0.2) && comTelefone) estrategia = "WhatsApp e ligacao";
-      else if (comTelefone >= comEmail) estrategia = "Ligacao";
+      if (comTelefone) estrategia = "Ligacao + WhatsApp";
       else if (comEmail) estrategia = "Campanha de e-mail";
 
       $("#exec-total").textContent = formatarNumero(total);
       $("#exec-visivel").textContent = `${formatarNumero(visiveis)} visiveis`;
       $("#exec-telefone").textContent = formatarNumero(comTelefone);
-      $("#exec-email").textContent = `${formatarNumero(comEmail)} com e-mail`;
-      $("#exec-completo").textContent = formatarNumero(completos);
-      $("#exec-enriquecer").textContent = `${formatarNumero(enriquecer)} precisam enriquecer`;
+      $("#exec-completo").textContent = `${formatarNumero(completos)} com telefone + e-mail`;
+      $("#exec-email").textContent = formatarNumero(comEmail);
+      $("#exec-sem-email").textContent = `${formatarNumero(semEmail)} sem e-mail`;
       $("#exec-estrategia").textContent = estrategia;
       $("#exec-qualidade").textContent = `Qualidade da base: ${qualidade}%`;
       $("#contador-total").textContent = `Total da busca: ${formatarNumero(buscaAtual.total || total)}`;
