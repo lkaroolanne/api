@@ -522,10 +522,7 @@ button:disabled {
 }
 
 .message {
-  margin: 0;
-  padding: 14px 24px;
-  color: var(--muted);
-  border-bottom: 1px solid var(--line);
+  display: none;
 }
 
 .suggestion-row {
@@ -1261,7 +1258,6 @@ td:first-child {
 
   .search-panel,
   .results-header,
-  .message,
   .pagination-bar,
   .solution-strip,
   .insight-bar,
@@ -1397,7 +1393,6 @@ td:first-child {
   .sidebar-head,
   .search-panel,
   .results-header,
-  .message,
   .insight-bar {
     padding: 14px;
   }
