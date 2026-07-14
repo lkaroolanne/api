@@ -900,15 +900,21 @@
       const porCnae = contagem(empresasAtuais, (lead) => lead.cnaePrincipal);
       const regioes = { Norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"], Nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"], "Centro-Oeste": ["DF", "GO", "MT", "MS"], Sudeste: ["ES", "MG", "RJ", "SP"], Sul: ["PR", "RS", "SC"] };
       const porRegiao = contagem(empresasAtuais, (lead) => Object.keys(regioes).find((regiao) => regioes[regiao].includes(String(lead.ufComercial).toUpperCase())) || "");
+      const linhaRanking = ([nome, total]) => `
+        <p class="ranking-row">
+          <span>${escaparHtml(nome || "-")}</span>
+          <strong>${formatarNumero(total || 0)}</strong>
+        </p>
+      `;
 
       rankingLocal.innerHTML = [
-        `<p>UF lider: <strong>${escaparHtml(porUf[0]?.[0] || "-")}</strong></p>`,
-        `<p>Cidade lider: <strong>${escaparHtml(porCidade[0]?.[0] || "-")}</strong></p>`,
-        `<p>Regioes: ${porRegiao.map(([nome, total]) => `<strong>${escaparHtml(nome)}</strong> ${formatarNumero(total)}`).join(" | ") || "-"}</p>`
+        `<p class="ranking-feature"><span>UF lider</span><strong>${escaparHtml(porUf[0]?.[0] || "-")}</strong></p>`,
+        `<p class="ranking-feature"><span>Cidade lider</span><strong>${escaparHtml(porCidade[0]?.[0] || "-")}</strong></p>`,
+        `<div class="ranking-mini-grid">${porRegiao.length ? porRegiao.map(linhaRanking).join("") : '<p class="ranking-row"><span>Regioes</span><strong>-</strong></p>'}</div>`
       ].join("");
 
       rankingCnae.innerHTML = porCnae.length
-        ? porCnae.map(([nome, total]) => `<p><strong>${escaparHtml(nome)}</strong><span>${formatarNumero(total)}</span></p>`).join("")
+        ? porCnae.map(linhaRanking).join("")
         : "<p>Sem CNAE informado.</p>";
     }
 

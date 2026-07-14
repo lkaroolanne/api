@@ -557,6 +557,17 @@ button:disabled {
   font-size: 12px;
 }
 
+.template-list {
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.template-button {
+  min-height: 32px;
+  padding: 0 10px;
+  white-space: nowrap;
+}
+
 .filter-chip.is-active,
 .suggestion-chip:hover,
 .template-button:hover {
@@ -684,8 +695,8 @@ button:disabled {
 
 .ranking-grid {
   display: grid;
-  grid-template-columns: 1.15fr 1fr 1.25fr;
-  gap: 12px;
+  grid-template-columns: 1fr 0.9fr 1.1fr;
+  gap: 10px;
   padding: 12px 24px;
   border-bottom: 1px solid var(--line);
 }
@@ -693,24 +704,57 @@ button:disabled {
 .ranking-grid section {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.035);
+  min-width: 0;
 }
 
 .ranking-list {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   margin-top: 8px;
 }
 
 .ranking-list p {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 10px;
   margin: 0;
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.ranking-feature,
+.ranking-row {
+  min-height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.ranking-feature span,
+.ranking-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ranking-feature strong,
+.ranking-row strong {
+  color: #ffffff;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.ranking-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .daily-list {
