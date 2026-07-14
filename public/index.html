@@ -211,14 +211,13 @@
                   <th>Cidade/Codigo</th>
                   <th>Telefone</th>
                   <th>Email</th>
-                  <th>Status</th>
                   <th>Acao</th>
                   <th>API</th>
                 </tr>
               </thead>
               <tbody id="tabela-resultados">
                 <tr>
-                  <td colspan="13" class="empty-state">Nenhuma busca realizada.</td>
+                  <td colspan="12" class="empty-state">Nenhuma busca realizada.</td>
                 </tr>
               </tbody>
             </table>
@@ -337,13 +336,10 @@
 
     const STORAGE_KEYS = {
       favoritos: "vortech.favoritos",
-      status: "vortech.status",
-      notas: "vortech.notas",
       historico: "vortech.historico",
       baseVortech: "vortech.baseVortech"
     };
 
-    const STATUS_LEAD = ["Novo", "Contatado", "Sem resposta", "Interessado", "Descartar"];
     const TERMOS_SCORE = ["solda", "soldagem", "ferramentas", "ferragens", "gases", "maquinas", "maquina", "inversora", "mig", "tig", "eletrodo", "distribuidor", "revenda", "industrial"];
     const sugestoesRelacionadas = {
       solda: ["Soldagem", "MIG", "TIG", "Eletrodo", "Maquina de Solda", "Inversora"],
@@ -382,8 +378,6 @@
     function carregarEstadoLocal() {
       return {
         favoritos: lerJsonLocal(STORAGE_KEYS.favoritos, {}),
-        status: lerJsonLocal(STORAGE_KEYS.status, {}),
-        notas: lerJsonLocal(STORAGE_KEYS.notas, {}),
         historico: lerJsonLocal(STORAGE_KEYS.historico, []),
         baseVortech: lerJsonLocal(STORAGE_KEYS.baseVortech, [])
       };
@@ -645,8 +639,6 @@
         acaoSugerida: score.acao,
         tags: score.tags,
         favorito: Boolean(estadoLocal.favoritos[chave]),
-        status: estadoLocal.status[chave] || "Novo",
-        observacao: estadoLocal.notas[chave] || "",
         baseVortechMatch,
         telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
         cidadeComercial: campoCidade(empresa),
@@ -876,7 +868,6 @@
         if (filtroAtual === "sem-contato") return !temTelefone(lead) && !temEmail(lead);
         if (filtroAtual === "quentes") return lead.prioridade === "Lead quente";
         if (filtroAtual === "favoritos") return lead.favorito;
-        if (filtroAtual === "contatados") return lead.status === "Contatado";
         return true;
       });
     }
@@ -929,14 +920,6 @@
       $("#exec-qualidade").textContent = `Qualidade da base: ${qualidade}%`;
     }
 
-    function opcoesStatus(statusAtual, chave) {
-      return `
-        <select class="status-select" data-status="${escaparAtributo(chave)}">
-          ${STATUS_LEAD.map((status) => `<option value="${status}" ${status === statusAtual ? "selected" : ""}>${status}</option>`).join("")}
-        </select>
-      `;
-    }
-
     function renderizarAcoesLead(lead, index) {
       return `
         <div class="lead-actions">
@@ -963,7 +946,7 @@
     function aplicarFiltrosERenderizar() {
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const duplicados = detectarDuplicidades(empresasAtuais);
-      const colspan = 13;
+      const colspan = 12;
 
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
@@ -997,7 +980,6 @@
               <td data-label="Cidade/Codigo" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>
               <td data-label="Telefone" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>
               <td data-label="Email" data-campo="email">${escaparHtml(lead.email)}</td>
-              <td data-label="Status">${opcoesStatus(lead.status, lead.chaveLocal)}<textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtmlBruto(lead.observacao)}</textarea></td>
               <td data-label="Acao"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>
               <td data-label="API"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>
             </tr>
@@ -1278,7 +1260,7 @@
         dailyList.hidden = true;
         resumo.textContent = "Erro na consulta";
         mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
-        tabela.innerHTML = '<tr><td colspan="13" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
+        tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
       } finally {
         definirCarregando(false);
       }
@@ -1307,17 +1289,13 @@
 
       if (event.target.closest("#resetar-local")) {
         estadoLocal.favoritos = {};
-        estadoLocal.status = {};
-        estadoLocal.notas = {};
         estadoLocal.baseVortech = [];
         salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
-        salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
-        salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
         salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
         indiceBaseVortech = montarIndiceBaseVortech([]);
         atualizarStatusBaseVortech();
         renderizarLinhas(empresasAtuais);
-        mensagem.textContent = "Favoritos, status e anotacoes locais foram resetados.";
+        mensagem.textContent = "Favoritos e base local foram resetados.";
         return;
       }
 
@@ -1363,28 +1341,6 @@
       }
 
       atualizarCnpj(Number(botao.dataset.atualizar));
-    });
-
-    tabela.addEventListener("change", (event) => {
-      const seletor = event.target.closest("[data-status]");
-      if (!seletor) return;
-
-      estadoLocal.status[seletor.dataset.status] = seletor.value;
-      salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
-      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
-      aplicarFiltrosERenderizar();
-      mensagem.textContent = "Status do lead salvo.";
-    });
-
-    tabela.addEventListener("input", (event) => {
-      const nota = event.target.closest("[data-nota]");
-      if (!nota) return;
-
-      estadoLocal.notas[nota.dataset.nota] = nota.value;
-      salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
-      const lead = empresasAtuais.find((item) => item.chaveLocal === nota.dataset.nota);
-      if (lead) lead.observacao = nota.value;
-      mensagem.textContent = "Anotacao salva localmente.";
     });
 
     filtrosRapidos.addEventListener("click", (event) => {
@@ -1483,7 +1439,7 @@
     function exportarVisiveis() {
       const cabecalho = [
         "CNPJ", "Razao social", "Nome fantasia", "Telefone", "Email", "Cidade", "UF", "CNAE",
-        "Score", "Prioridade", "Acao sugerida", "Tags", "Status", "Observacao", "Base Vortech", "Mensagem WhatsApp", "Mensagem E-mail"
+        "Score", "Prioridade", "Acao sugerida", "Tags", "Base Vortech", "Mensagem WhatsApp", "Mensagem E-mail"
       ];
       const linhas = empresasVisiveis.map((lead) => [
         formatarCnpj(lead.cnpj),
@@ -1498,8 +1454,6 @@
         lead.prioridade,
         lead.acaoSugerida,
         lead.tags.join(", "),
-        lead.status,
-        lead.observacao,
         lead.baseVortechMatch ? `Ja na base (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada",
         mensagemWhatsapp(lead),
         mensagemEmail(lead)
@@ -1602,7 +1556,7 @@
       document.querySelector(".table-wrap").hidden = false;
       resumo.textContent = "Informe um CNAE ou palavra-chave";
       mensagem.textContent = mensagemApiPadrao;
-      tabela.innerHTML = '<tr><td colspan="13" class="empty-state">Nenhuma busca realizada.</td></tr>';
+      tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nenhuma busca realizada.</td></tr>';
       inputBusca.focus();
     });
 

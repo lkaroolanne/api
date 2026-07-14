@@ -789,7 +789,7 @@ button:disabled {
 
 table {
   width: 100%;
-  min-width: 1360px;
+  min-width: 1220px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -869,16 +869,11 @@ td:nth-child(10) {
 
 th:nth-child(11),
 td:nth-child(11) {
-  width: 178px;
+  width: 154px;
 }
 
 th:nth-child(12),
 td:nth-child(12) {
-  width: 154px;
-}
-
-th:nth-child(13),
-td:nth-child(13) {
   width: 88px;
 }
 
@@ -985,20 +980,6 @@ td:first-child {
   border: 1px solid rgba(255, 177, 92, 0.4);
   background: rgba(255, 177, 92, 0.13);
   color: #ffd3a1;
-}
-
-.status-select {
-  min-height: 32px;
-  padding: 0 8px;
-  font-size: 12px;
-}
-
-.note-input {
-  margin-top: 6px;
-  min-width: 0;
-  min-height: 42px;
-  max-height: 58px;
-  font-size: 12px;
 }
 
 .favorite-button {
