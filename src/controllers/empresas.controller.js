@@ -1,6 +1,9 @@
 import { prisma } from "../prisma/client.js";
 import { buscarCnpjBrasilApi } from "../services/cnpj.service.js";
 import { gerarPlanilhaEmpresas } from "../services/exportarExcel.service.js";
+import fs from "node:fs";
+import path from "node:path";
+import xlsx from "xlsx";
 
 const CNAES_SOLDAGEM_REVENDA = new Set([
   "4663000",
@@ -106,6 +109,12 @@ function lerLimiteEnv(chave, padrao) {
 const LIMITE_BUSCA_TERMO = lerLimiteEnv("LIMITE_BUSCA_TERMO", 1500);
 const LIMITE_CNAE_TELA = lerLimiteEnv("LIMITE_CNAE_TELA", 1500);
 const LIMITE_MAXIMO_TELA = lerLimiteEnv("LIMITE_MAXIMO_TELA", 3000);
+const ARQUIVO_BASE_VORTECH = path.resolve(process.cwd(), "data", "base-vortech.xlsx");
+
+let cacheBaseVortech = {
+  mtimeMs: 0,
+  registros: []
+};
 
 const CAMPOS_LISTA_PROSPECTS = {
   cnpj: true,
@@ -123,6 +132,74 @@ const CAMPOS_LISTA_PROSPECTS = {
 
 function normalizarTermoBusca(valor) {
   return String(valor || "").trim();
+}
+
+function limparNumerosBase(valor) {
+  return String(valor || "").replace(/\D/g, "");
+}
+
+function normalizarCabecalhoBase(valor) {
+  return String(valor || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "");
+}
+
+function escolherCampoBase(linha, nomes) {
+  const mapa = new Map(
+    Object.entries(linha).map(([chave, valor]) => [normalizarCabecalhoBase(chave), valor])
+  );
+
+  for (const nome of nomes) {
+    const valor = mapa.get(normalizarCabecalhoBase(nome));
+    if (valor !== undefined && valor !== null && String(valor).trim()) {
+      return String(valor).trim();
+    }
+  }
+
+  return "";
+}
+
+function lerBaseVortechArquivo() {
+  const stat = fs.statSync(ARQUIVO_BASE_VORTECH);
+
+  if (cacheBaseVortech.mtimeMs === stat.mtimeMs && cacheBaseVortech.registros.length) {
+    return cacheBaseVortech.registros;
+  }
+
+  const workbook = xlsx.readFile(ARQUIVO_BASE_VORTECH, { cellDates: false });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const linhas = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+  const registros = new Map();
+
+  for (const linha of linhas) {
+    const cnpj = limparNumerosBase(escolherCampoBase(linha, ["CNPJ", "cnpj"]));
+    const razaoSocial = escolherCampoBase(linha, [
+      "RAZAO_SOCIAL",
+      "RAZAO SOCIAL",
+      "RAZÃO SOCIAL",
+      "Razao Social",
+      "Nome",
+      "Cliente"
+    ]);
+    const tipoCliente = escolherCampoBase(linha, ["TIPO_CLIENTE", "TIPO CLIENTE", "Tipo"]);
+
+    if (!cnpj && !razaoSocial) continue;
+
+    registros.set(cnpj || normalizarCabecalhoBase(razaoSocial), {
+      cnpj,
+      razaoSocial,
+      tipoCliente
+    });
+  }
+
+  cacheBaseVortech = {
+    mtimeMs: stat.mtimeMs,
+    registros: Array.from(registros.values())
+  };
+
+  return cacheBaseVortech.registros;
 }
 
 function normalizarTexto(valor) {
@@ -310,6 +387,32 @@ export async function listarEmpresas(req, res) {
     return res.status(500).json({
       sucesso: false,
       mensagem: error.message
+    });
+  }
+}
+
+export async function obterBaseVortech(req, res) {
+  try {
+    if (!fs.existsSync(ARQUIVO_BASE_VORTECH)) {
+      return res.status(404).json({
+        sucesso: false,
+        mensagem: "Planilha da Base Vortech nao encontrada no servidor.",
+        caminho: "data/base-vortech.xlsx"
+      });
+    }
+
+    const registros = lerBaseVortechArquivo();
+
+    return res.json({
+      sucesso: true,
+      origem: "data/base-vortech.xlsx",
+      total: registros.length,
+      registros
+    });
+  } catch (error) {
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: `Nao foi possivel carregar a Base Vortech: ${error.message}`
     });
   }
 }

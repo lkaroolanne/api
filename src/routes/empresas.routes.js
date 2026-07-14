@@ -7,6 +7,7 @@ import {
   listarEmpresasPorCnae,
   contarEmpresasPorCnae,
   obterMetricasProspects,
+  obterBaseVortech,
   listarContagensPorCnae,
   exportarEmpresasExcel,
   exportarEmpresasPorTermoExcel,
@@ -18,6 +19,8 @@ const router = Router();
 router.get("/", listarEmpresas);
 
 router.get("/metricas", obterMetricasProspects);
+
+router.get("/base-vortech", obterBaseVortech);
 
 router.get("/cnaes/contagens", listarContagensPorCnae);
 

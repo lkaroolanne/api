@@ -106,7 +106,7 @@
             <div>
               <p class="eyebrow">Base Vortech</p>
               <strong id="base-vortech-status">Nenhuma base carregada</strong>
-              <small>Cole linhas copiadas do Excel com CNPJ e razao social para evitar contato repetido.</small>
+              <small>A base oficial carrega automaticamente do backend. Cole linhas aqui apenas para complementar.</small>
             </div>
             <textarea
               id="base-vortech-texto"
@@ -1171,6 +1171,29 @@
         : "Nenhuma base carregada";
     }
 
+    async function carregarBaseVortechAutomatica() {
+      try {
+        validarApiUrl();
+        baseVortechStatus.textContent = "Carregando base oficial...";
+        const dados = await buscarJson(`${API_URL}/empresas/base-vortech`);
+
+        if (!dados.sucesso || !Array.isArray(dados.registros)) {
+          throw new Error(dados.mensagem || "Base Vortech indisponivel.");
+        }
+
+        estadoLocal.baseVortech = dados.registros;
+        salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
+        indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
+        empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+        if (empresasAtuais.length) {
+          aplicarFiltrosERenderizar();
+        }
+        baseVortechStatus.textContent = `${formatarNumero(dados.total || dados.registros.length)} registro(s) da base oficial carregados`;
+      } catch (error) {
+        atualizarStatusBaseVortech();
+      }
+    }
+
     function escolherRazaoSocial(partes, linha, cnpj) {
       const candidatos = partes
         .map((parte) => String(parte || "").trim())
@@ -1578,6 +1601,7 @@
 
     renderizarAtalhos();
     atualizarStatusBaseVortech();
+    carregarBaseVortechAutomatica();
     carregarMetricas();
   </script>
 </body>
