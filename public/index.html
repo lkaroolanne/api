@@ -664,7 +664,7 @@
 
     function urlWhatsapp(lead) {
       const telefone = lead.telefoneLimpo.startsWith("55") ? lead.telefoneLimpo : `55${lead.telefoneLimpo}`;
-      return `https://wa.me/${telefone}?text=${encodeURIComponent(mensagemWhatsapp(lead))}`;
+      return `https://web.whatsapp.com/send?phone=${telefone}&text=${encodeURIComponent(mensagemWhatsapp(lead))}`;
     }
 
     async function copiarTexto(valor, feedback = "Copiado.") {
@@ -926,7 +926,6 @@
           ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
           <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
           <button class="mini-button" type="button" data-email="${index}">E-mail</button>
-          <button class="favorite-button ${lead.favorito ? "is-active" : ""}" type="button" data-favorito="${index}" title="Favorito">Fav</button>
         </div>
       `;
     }
@@ -1295,7 +1294,7 @@
         indiceBaseVortech = montarIndiceBaseVortech([]);
         atualizarStatusBaseVortech();
         renderizarLinhas(empresasAtuais);
-        mensagem.textContent = "Favoritos e base local foram resetados.";
+        mensagem.textContent = "Base local resetada.";
         return;
       }
 
@@ -1319,18 +1318,6 @@
       const email = event.target.closest("[data-email]");
       if (email) {
         copiarTexto(mensagemEmail(empresasAtuais[Number(email.dataset.email)]), "Mensagem de e-mail copiada.");
-        return;
-      }
-
-      const favorito = event.target.closest("[data-favorito]");
-      if (favorito) {
-        const lead = empresasAtuais[Number(favorito.dataset.favorito)];
-        estadoLocal.favoritos[lead.chaveLocal] = !lead.favorito;
-        if (!estadoLocal.favoritos[lead.chaveLocal]) delete estadoLocal.favoritos[lead.chaveLocal];
-        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
-        empresasAtuais[Number(favorito.dataset.favorito)] = enriquecerEmpresa(lead);
-        aplicarFiltrosERenderizar();
-        mensagem.textContent = "Favorito salvo.";
         return;
       }
 

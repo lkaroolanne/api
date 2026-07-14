@@ -621,8 +621,7 @@ button:disabled {
   margin-top: 6px;
 }
 
-.lead-actions .mini-button,
-.lead-actions .favorite-button {
+.lead-actions .mini-button {
   width: 100%;
 }
 
@@ -982,20 +981,6 @@ td:first-child {
   color: #ffd3a1;
 }
 
-.favorite-button {
-  min-width: 30px;
-  min-height: 30px;
-  padding: 0;
-  border: 1px solid rgba(240, 200, 90, 0.32);
-  background: transparent;
-  color: var(--muted);
-}
-
-.favorite-button.is-active {
-  background: var(--accent);
-  color: #050505;
-}
-
 .action-link {
   display: inline-flex;
   align-items: center;
@@ -1293,10 +1278,6 @@ td:first-child {
   .lead-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
-  }
-
-  .favorite-button {
-    width: 100%;
   }
 
   .seller-list {
