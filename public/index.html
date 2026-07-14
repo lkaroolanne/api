@@ -19,6 +19,29 @@
         <p>Banco de prospects</p>
         <span class="brand-badge">Solda, Corte, Gases e Ferramentas</span>
       </div>
+
+      <section class="search-panel brand-search" aria-labelledby="titulo-pagina">
+        <div class="search-title">
+          <h2 id="titulo-pagina">Consulta</h2>
+          <p class="search-helper">CNAE, CNPJ ou termo de revendedor</p>
+        </div>
+
+        <form id="form-busca" class="search-form">
+          <label class="sr-only" for="busca">CNAE, CNPJ ou termo de revendedor</label>
+          <div class="input-row">
+            <input
+              id="busca"
+              name="busca"
+              type="text"
+              autocomplete="off"
+              placeholder="Ex: 4744001, Revenda de Solda, Ferramentas"
+              required
+            >
+            <button id="buscar" type="submit">Buscar</button>
+          </div>
+          <div id="sugestoes-busca" class="suggestion-row" hidden></div>
+        </form>
+      </section>
     </header>
 
     <section class="command-strip" aria-label="Indicadores da base">
@@ -49,29 +72,6 @@
       </aside>
 
       <section class="content-area">
-        <section class="search-panel" aria-labelledby="titulo-pagina">
-          <div>
-            <h2 id="titulo-pagina">Consulta</h2>
-            <p class="search-helper">CNAE, CNPJ ou termo de revendedor</p>
-          </div>
-
-          <form id="form-busca" class="search-form">
-            <label class="sr-only" for="busca">CNAE, CNPJ ou termo de revendedor</label>
-            <div class="input-row">
-              <input
-                id="busca"
-                name="busca"
-                type="text"
-                autocomplete="off"
-                placeholder="Ex: 4744001, Revenda de Solda, Ferramentas"
-                required
-              >
-              <button id="buscar" type="submit">Buscar</button>
-            </div>
-            <div id="sugestoes-busca" class="suggestion-row" hidden></div>
-          </form>
-        </section>
-
         <section class="results-panel" id="painel-resultados">
           <div class="results-header">
             <div>
@@ -105,11 +105,8 @@
               <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
               <button class="filter-chip" type="button" data-filtro="telefone">So com telefone</button>
               <button class="filter-chip" type="button" data-filtro="email">So com e-mail</button>
-              <button class="filter-chip" type="button" data-filtro="completo">Contato completo</button>
               <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
               <button class="filter-chip" type="button" data-filtro="quentes">Leads quentes</button>
-              <button class="filter-chip" type="button" data-filtro="favoritos">Favoritos</button>
-              <button class="filter-chip" type="button" data-filtro="contatados">Contatados</button>
             </div>
             <div class="toolbar-actions">
               <label class="select-field">
@@ -144,7 +141,7 @@
               <small id="exec-email">0 com e-mail</small>
             </article>
             <article class="executive-card">
-              <span>Contato completo</span>
+              <span>Telefone + e-mail</span>
               <strong id="exec-completo">0</strong>
               <small id="exec-enriquecer">0 precisam enriquecer</small>
             </article>
@@ -983,7 +980,7 @@
           return `
             <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""}" data-index="${index}">
               <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${duplicados[lead.chaveLocal] ? '<span class="dup-badge">Possivel duplicidade</span>' : ""}</td>
-              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato completo</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}</td>
+              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}</td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
               <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>

@@ -48,10 +48,11 @@ body::before {
 }
 
 .brand-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(250px, 0.42fr) minmax(520px, 0.9fr);
   align-items: center;
   gap: 16px;
-  min-height: 94px;
+  min-height: 96px;
   margin-bottom: 18px;
   padding: 14px 18px;
   border: 1px solid rgba(240, 200, 90, 0.34);
@@ -101,6 +102,42 @@ body::before {
   background: rgba(240, 200, 90, 0.1);
   font-size: 12px;
   font-weight: 700;
+}
+
+.search-panel.brand-search {
+  display: grid;
+  grid-template-columns: minmax(130px, 180px) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: center;
+  justify-self: end;
+  width: 100%;
+  min-height: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.search-panel.brand-search .search-title {
+  min-width: 0;
+}
+
+.search-panel.brand-search h2 {
+  color: var(--accent);
+  font-size: 24px;
+  text-align: left;
+  text-shadow: 0 0 20px rgba(255, 230, 0, 0.14);
+}
+
+.search-panel.brand-search .search-helper {
+  margin-top: 6px;
+}
+
+.search-panel.brand-search .search-form {
+  max-width: none;
+  justify-self: stretch;
 }
 
 .command-strip {
@@ -298,6 +335,10 @@ h2 {
 
 .content-area {
   min-width: 0;
+}
+
+.content-area .results-panel {
+  margin-top: 0;
 }
 
 .search-panel {
@@ -1103,6 +1144,15 @@ td:first-child {
 }
 
 @media (max-width: 1040px) {
+  .brand-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .search-panel.brand-search {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
+  }
+
   .command-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1158,9 +1208,21 @@ td:first-child {
   }
 
   .brand-header {
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 12px;
     min-height: 0;
     padding: 14px;
+  }
+
+  .search-panel.brand-search {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    justify-items: stretch;
+  }
+
+  .search-panel.brand-search h2,
+  .search-panel.brand-search .search-helper {
+    text-align: left;
   }
 
   .brand-logo {
