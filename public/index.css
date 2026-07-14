@@ -536,7 +536,8 @@ button:disabled {
 .base-vortech-panel[hidden],
 .executive-grid[hidden],
 .daily-list[hidden],
-.seller-list[hidden] {
+.seller-list[hidden],
+.load-more-bar[hidden] {
   display: none;
 }
 
@@ -784,6 +785,14 @@ button:disabled {
   max-height: calc(100vh - 292px);
   overflow: auto;
   scrollbar-color: var(--accent) #111111;
+}
+
+.load-more-bar {
+  display: flex;
+  justify-content: center;
+  padding: 12px 24px;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
 }
 
 table {

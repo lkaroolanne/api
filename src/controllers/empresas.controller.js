@@ -98,8 +98,14 @@ const TERMOS_RUIDO = [
   "spa"
 ];
 
-const LIMITE_BUSCA_TERMO = 5000;
-const LIMITE_CNAE_TELA = 10000;
+function lerLimiteEnv(chave, padrao) {
+  const valor = Number(process.env[chave]);
+  return Number.isFinite(valor) && valor > 0 ? valor : padrao;
+}
+
+const LIMITE_BUSCA_TERMO = lerLimiteEnv("LIMITE_BUSCA_TERMO", 1500);
+const LIMITE_CNAE_TELA = lerLimiteEnv("LIMITE_CNAE_TELA", 1500);
+const LIMITE_MAXIMO_TELA = lerLimiteEnv("LIMITE_MAXIMO_TELA", 3000);
 
 const CAMPOS_LISTA_PROSPECTS = {
   cnpj: true,
@@ -449,7 +455,7 @@ export async function listarEmpresasPorCnae(req, res) {
     const limiteSolicitado = Number.parseInt(req.query.limite, 10);
     const paginaSolicitada = Number.parseInt(req.query.pagina, 10);
     const limite = Number.isFinite(limiteSolicitado)
-      ? Math.min(Math.max(limiteSolicitado, 1), 10000)
+      ? Math.min(Math.max(limiteSolicitado, 1), LIMITE_MAXIMO_TELA)
       : LIMITE_CNAE_TELA;
     const pagina = Number.isFinite(paginaSolicitada)
       ? Math.max(paginaSolicitada, 1)

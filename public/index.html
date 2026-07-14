@@ -222,6 +222,9 @@
               </tbody>
             </table>
           </div>
+          <div class="load-more-bar" id="load-more-bar" hidden>
+            <button id="mostrar-mais" class="ghost-button compact-button" type="button">Mostrar mais</button>
+          </div>
         </section>
       </section>
     </div>
@@ -239,7 +242,8 @@
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
     const ATUALIZACOES_SIMULTANEAS = 6;
-    const LIMITE_CNAE_TELA = 10000;
+    const LIMITE_CNAE_TELA = 1500;
+    const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
 
     const atalhos = [
@@ -303,6 +307,9 @@
     const resumo = $("#resumo");
     const mensagem = $("#mensagem");
     const tabela = $("#tabela-resultados");
+    const tabelaContainer = document.querySelector(".table-wrap");
+    const loadMoreBar = $("#load-more-bar");
+    const botaoMostrarMais = $("#mostrar-mais");
     const listaAtalhos = $("#lista-atalhos");
     const sugestoesBusca = $("#sugestoes-busca");
     const metricaTotal = $("#metrica-total");
@@ -359,6 +366,7 @@
     let buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1, total: 0 };
     let empresasAtuais = [];
     let empresasVisiveis = [];
+    let quantidadeRenderizada = LOTE_RENDERIZACAO;
     let totalBaseOnline = null;
     let atalhosVisiveis = atalhos;
     let filtroAtual = "todos";
@@ -939,11 +947,14 @@
 
     function renderizarLinhas(empresas) {
       empresasAtuais = empresas.map(enriquecerEmpresa);
+      quantidadeRenderizada = LOTE_RENDERIZACAO;
       aplicarFiltrosERenderizar();
     }
 
     function aplicarFiltrosERenderizar() {
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
+      const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
+      const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
       const duplicados = detectarDuplicidades(empresasAtuais);
       const colspan = 12;
 
@@ -955,14 +966,16 @@
 
       if (!empresasAtuais.length) {
         tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>`;
+        loadMoreBar.hidden = true;
         return;
       }
 
       if (!empresasVisiveis.length) {
         tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum lead atende aos filtros atuais.</td></tr>`;
+        loadMoreBar.hidden = true;
       } else {
-        tabela.innerHTML = empresasVisiveis.map((lead) => {
-          const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
+        tabela.innerHTML = linhasRenderizadas.map((lead) => {
+          const index = indicePorChave.get(lead.chaveLocal) ?? 0;
           const contatoCompleto = temTelefone(lead) && temEmail(lead);
           const badgeBaseVortech = lead.baseVortechMatch
             ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.tipo)}</span>`
@@ -985,9 +998,14 @@
           `;
         }).join("");
 
+        const temMais = empresasVisiveis.length > linhasRenderizadas.length;
+        loadMoreBar.hidden = !temMais;
+        botaoMostrarMais.textContent = temMais
+          ? `Mostrar mais (${formatarNumero(linhasRenderizadas.length)} de ${formatarNumero(empresasVisiveis.length)})`
+          : "Mostrar mais";
       }
 
-      document.querySelector(".table-wrap").hidden = false;
+      tabelaContainer.hidden = false;
     }
 
     async function carregarMetricas() {
@@ -1241,8 +1259,8 @@
         const exibidos = dados.exibidos || dados.empresas?.length || 0;
         resumo.textContent = `${formatarNumero(dados.total)} CNPJ(s) encontrados`;
         mensagem.textContent = buscaAtual.tipo === "cnae"
-          ? `CNAE principal exato ${buscaAtual.valor}. Pagina ${formatarNumero(buscaAtual.pagina)} com ${formatarNumero(exibidos)} registro(s); Exportar Excel baixa tudo.`
-          : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
+          ? `Pagina ${formatarNumero(buscaAtual.pagina)} com ${formatarNumero(exibidos)} registro(s).`
+          : `${formatarNumero(exibidos)} lead(s) carregados.`;
 
         atualizarPaginacao(dados);
         atualizarSolucao(dados.empresas || [], dados.total);
@@ -1259,6 +1277,7 @@
         barraComercial.hidden = true;
         gradeExecutiva.hidden = true;
         dailyList.hidden = true;
+        loadMoreBar.hidden = true;
         resumo.textContent = "Erro na consulta";
         mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
         tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
@@ -1338,14 +1357,21 @@
 
       filtroAtual = botao.dataset.filtro;
       filtrosRapidos.querySelectorAll("[data-filtro]").forEach((item) => item.classList.toggle("is-active", item === botao));
+      quantidadeRenderizada = LOTE_RENDERIZACAO;
       aplicarFiltrosERenderizar();
     });
 
     botaoLimparFiltros.addEventListener("click", () => {
       filtroAtual = "todos";
       filtrosRapidos.querySelectorAll("[data-filtro]").forEach((item) => item.classList.toggle("is-active", item.dataset.filtro === "todos"));
+      quantidadeRenderizada = LOTE_RENDERIZACAO;
       aplicarFiltrosERenderizar();
       mensagem.textContent = "Filtros limpos.";
+    });
+
+    botaoMostrarMais.addEventListener("click", () => {
+      quantidadeRenderizada += LOTE_RENDERIZACAO;
+      aplicarFiltrosERenderizar();
     });
 
     botaoBaseVortechToggle.addEventListener("click", () => {
@@ -1542,7 +1568,8 @@
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
       dailyList.hidden = true;
-      document.querySelector(".table-wrap").hidden = false;
+      loadMoreBar.hidden = true;
+      tabelaContainer.hidden = false;
       resumo.textContent = "Informe um CNAE ou palavra-chave";
       mensagem.textContent = mensagemApiPadrao;
       tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nenhuma busca realizada.</td></tr>';
