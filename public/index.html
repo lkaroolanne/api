@@ -884,25 +884,6 @@
       return [...lista].sort((a, b) => b.score - a.score);
     }
 
-    function detectarDuplicidades(lista) {
-      const cnpjs = new Map();
-      const nomes = new Map();
-
-      lista.forEach((lead) => {
-        const cnpj = limparNumeros(lead.cnpj);
-        const nome = normalizarTexto(lead.razaoSocial || lead.nomeFantasia).replace(/[^a-z0-9]/g, "").slice(0, 18);
-        if (cnpj) cnpjs.set(cnpj, (cnpjs.get(cnpj) || 0) + 1);
-        if (nome.length > 10) nomes.set(nome, (nomes.get(nome) || 0) + 1);
-      });
-
-      return lista.reduce((mapa, lead) => {
-        const cnpj = limparNumeros(lead.cnpj);
-        const nome = normalizarTexto(lead.razaoSocial || lead.nomeFantasia).replace(/[^a-z0-9]/g, "").slice(0, 18);
-        mapa[lead.chaveLocal] = (cnpj && cnpjs.get(cnpj) > 1) || (nome && nomes.get(nome) > 1);
-        return mapa;
-      }, {});
-    }
-
     function atualizarResumoExecutivo() {
       const total = empresasAtuais.length;
       const visiveis = empresasVisiveis.length;
@@ -955,7 +936,6 @@
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
-      const duplicados = detectarDuplicidades(empresasAtuais);
       const colspan = 12;
 
       atualizarResumoExecutivo();
@@ -982,7 +962,7 @@
             : "";
           return `
             <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""} ${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
-              <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${duplicados[lead.chaveLocal] ? '<span class="dup-badge">Possivel duplicidade</span>' : ""}</td>
+              <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}</td>
               <td data-label="Score"><div class="score-stack"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div></td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>

@@ -919,7 +919,6 @@ td:first-child {
 .tag,
 .contact-badge,
 .enrich-badge,
-.dup-badge,
 .base-match-badge {
   display: inline-flex;
   align-items: center;
@@ -992,8 +991,7 @@ td:first-child {
   color: #c9f5d9;
 }
 
-.enrich-badge,
-.dup-badge {
+.enrich-badge {
   margin-top: 6px;
   border: 1px solid rgba(255, 169, 77, 0.28);
   background: rgba(255, 169, 77, 0.11);
