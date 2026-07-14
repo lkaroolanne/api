@@ -1077,13 +1077,15 @@
 
         if (botao) {
           botao.textContent = "OK";
+          botao.title = "Atualizado pela API";
         }
         mensagem.textContent = "Lead enriquecido pela API.";
 
         return true;
       } catch (error) {
         if (botao) {
-          botao.textContent = "Erro";
+          botao.textContent = "Erro API";
+          botao.title = error.message;
         }
         mensagem.textContent = "Nao foi possivel enriquecer este CNPJ agora.";
 
@@ -1403,7 +1405,7 @@
           processados += 1;
           mensagem.textContent = `Atualizando tudo: ${processados} de ${total}. Atualizados: ${atualizados}.`;
 
-          await esperar(80);
+          await esperar(15);
         }
       }
 

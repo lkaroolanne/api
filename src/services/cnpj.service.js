@@ -1,4 +1,19 @@
 import axios from "axios";
+import http from "node:http";
+import https from "node:https";
+
+const TEMPO_LIMITE_API_MS = Number(process.env.CNPJ_API_TIMEOUT_MS || 8000);
+const CNPJA_MAX_AGE = Number(process.env.CNPJA_MAX_AGE || 45);
+const CNPJA_GEOCODING = String(process.env.CNPJA_GEOCODING || "false").toLowerCase() === "true";
+
+const httpClient = axios.create({
+  timeout: TEMPO_LIMITE_API_MS,
+  httpAgent: new http.Agent({ keepAlive: true, maxSockets: 40 }),
+  httpsAgent: new https.Agent({ keepAlive: true, maxSockets: 40 }),
+  headers: {
+    "User-Agent": "VortechProspectAPI/1.0"
+  }
+});
 
 function limparCnpj(cnpj) {
   return String(cnpj || "").replace(/\D/g, "");
@@ -86,13 +101,12 @@ async function buscarCnpjCnpja(cnpjLimpo) {
   const apiKey = process.env.CNPJA_API_KEY;
   const baseUrl = apiKey ? "https://api.cnpja.com" : "https://open.cnpja.com";
   const params = apiKey
-    ? { strategy: "CACHE_IF_FRESH", maxAge: 45, geocoding: true }
+    ? { strategy: "CACHE_IF_FRESH", maxAge: CNPJA_MAX_AGE, geocoding: CNPJA_GEOCODING }
     : {};
 
-  const response = await axios.get(`${baseUrl}/office/${cnpjLimpo}`, {
+  const response = await httpClient.get(`${baseUrl}/office/${cnpjLimpo}`, {
     params,
     headers: apiKey ? { Authorization: apiKey } : undefined,
-    timeout: 20000
   });
 
   return mapearCnpja(response.data);
@@ -100,7 +114,7 @@ async function buscarCnpjCnpja(cnpjLimpo) {
 
 async function buscarCnpjBrasilApiFallback(cnpjLimpo) {
   const url = `https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`;
-  const response = await axios.get(url, { timeout: 20000 });
+  const response = await httpClient.get(url);
   const data = response.data;
 
   const empresa = {
@@ -148,10 +162,40 @@ export async function buscarCnpjBrasilApi(cnpj) {
     throw new Error("CNPJ invalido");
   }
 
+  const erros = [];
+
   try {
     return await buscarCnpjCnpja(cnpjLimpo);
   } catch (error) {
+    const detalhe = formatarErroApi(error);
+    erros.push(`CNPJa: ${detalhe}`);
     console.log("Erro CNPJa, usando fallback BrasilAPI:", error.response?.data || error.message);
-    return buscarCnpjBrasilApiFallback(cnpjLimpo);
   }
+
+  try {
+    return await buscarCnpjBrasilApiFallback(cnpjLimpo);
+  } catch (error) {
+    const detalhe = formatarErroApi(error);
+    erros.push(`BrasilAPI: ${detalhe}`);
+    console.log("Erro BrasilAPI:", error.response?.data || error.message);
+    throw new Error(`Nao foi possivel atualizar este CNPJ pela API. ${erros.join(" | ")}`);
+  }
+}
+
+function formatarErroApi(error) {
+  if (error.code === "ECONNABORTED") {
+    return `tempo limite de ${Math.round(TEMPO_LIMITE_API_MS / 1000)}s`;
+  }
+
+  if (error.response?.status) {
+    const mensagem = error.response.data?.message ||
+      error.response.data?.mensagem ||
+      error.response.data?.error ||
+      error.response.statusText ||
+      "erro externo";
+
+    return `HTTP ${error.response.status} - ${String(mensagem).slice(0, 120)}`;
+  }
+
+  return String(error.message || "erro externo").slice(0, 120);
 }
