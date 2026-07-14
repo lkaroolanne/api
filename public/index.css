@@ -832,7 +832,7 @@ td:nth-child(1) {
 
 th:nth-child(2),
 td:nth-child(2) {
-  width: 126px;
+  width: 168px;
 }
 
 th:nth-child(3),
@@ -935,6 +935,23 @@ td:first-child {
 .score-pill {
   border: 1px solid rgba(255, 255, 255, 0.18);
   color: #ffffff;
+}
+
+.score-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+
+.score-stack .score-pill,
+.score-stack .contact-badge,
+.score-stack .enrich-badge,
+.score-stack .base-match-badge {
+  margin-top: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .score-hot {

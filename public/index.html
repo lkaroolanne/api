@@ -983,7 +983,7 @@
           return `
             <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""} ${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
               <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${duplicados[lead.chaveLocal] ? '<span class="dup-badge">Possivel duplicidade</span>' : ""}</td>
-              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</td>
+              <td data-label="Score"><div class="score-stack"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div></td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
               <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
