@@ -68,6 +68,7 @@
               >
               <button id="buscar" type="submit">Buscar</button>
             </div>
+            <div id="sugestoes-busca" class="suggestion-row" hidden></div>
           </form>
         </section>
 
@@ -79,8 +80,14 @@
             </div>
 
             <div class="actions-row">
+              <button id="lista-dia" class="secondary-button" type="button" disabled>
+                Montar lista do dia
+              </button>
+              <button id="copiar-visiveis" class="ghost-button" type="button" disabled>
+                Copiar visiveis
+              </button>
               <button id="atualizar-lote" class="ghost-button" type="button" disabled>
-                Atualizar Tudo
+                Enriquecer API
               </button>
               <button id="exportar" class="secondary-button" type="button" disabled>
                 Exportar Excel
@@ -92,6 +99,94 @@
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
+
+          <div class="commercial-toolbar" id="commercial-toolbar" hidden>
+            <div class="quick-filters" id="filtros-rapidos">
+              <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
+              <button class="filter-chip" type="button" data-filtro="telefone">So com telefone</button>
+              <button class="filter-chip" type="button" data-filtro="email">So com e-mail</button>
+              <button class="filter-chip" type="button" data-filtro="completo">Contato completo</button>
+              <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
+              <button class="filter-chip" type="button" data-filtro="quentes">Leads quentes</button>
+              <button class="filter-chip" type="button" data-filtro="favoritos">Favoritos</button>
+              <button class="filter-chip" type="button" data-filtro="contatados">Contatados</button>
+            </div>
+            <div class="toolbar-actions">
+              <label class="select-field">
+                Ordenar
+                <select id="ordenacao">
+                  <option value="score">Score</option>
+                  <option value="empresa">Nome da empresa</option>
+                  <option value="cidade">Cidade</option>
+                  <option value="uf">UF</option>
+                  <option value="telefone">Com telefone primeiro</option>
+                  <option value="email">Com e-mail primeiro</option>
+                  <option value="status">Status</option>
+                </select>
+              </label>
+              <label class="seller-toggle">
+                <input id="modo-vendedor" type="checkbox">
+                <span>Modo vendedor</span>
+              </label>
+              <button id="limpar-filtros" class="ghost-button compact-button" type="button">Limpar filtros</button>
+            </div>
+          </div>
+
+          <div class="executive-grid" id="executive-grid" hidden>
+            <article class="executive-card">
+              <span>Total encontrado</span>
+              <strong id="exec-total">0</strong>
+              <small id="exec-visivel">0 visiveis</small>
+            </article>
+            <article class="executive-card">
+              <span>Telefone</span>
+              <strong id="exec-telefone">0</strong>
+              <small id="exec-email">0 com e-mail</small>
+            </article>
+            <article class="executive-card">
+              <span>Contato completo</span>
+              <strong id="exec-completo">0</strong>
+              <small id="exec-enriquecer">0 precisam enriquecer</small>
+            </article>
+            <article class="executive-card is-premium">
+              <span>Estrategia</span>
+              <strong id="exec-estrategia">-</strong>
+              <small id="exec-qualidade">Qualidade da base: 0%</small>
+            </article>
+          </div>
+
+          <div class="lead-counter" id="lead-counter" hidden>
+            <span id="contador-total">Total da busca: 0</span>
+            <span id="contador-visivel">Visiveis: 0</span>
+            <span id="contador-quentes">Quentes visiveis: 0</span>
+            <span id="contador-contatos">Com telefone/e-mail: 0</span>
+          </div>
+
+          <div class="ranking-grid" id="ranking-grid" hidden>
+            <section>
+              <h3>Ranking geografico</h3>
+              <div id="ranking-local" class="ranking-list"></div>
+            </section>
+            <section>
+              <h3>Ranking CNAE</h3>
+              <div id="ranking-cnae" class="ranking-list"></div>
+            </section>
+            <section>
+              <h3>Templates</h3>
+              <div id="templates-abordagem" class="template-list"></div>
+            </section>
+          </div>
+
+          <div class="daily-list" id="daily-list" hidden>
+            <div class="daily-head">
+              <div>
+                <p class="eyebrow">Lista do dia</p>
+                <h3>Top leads para atacar agora</h3>
+              </div>
+              <button id="fechar-lista-dia" class="ghost-button compact-button" type="button">Fechar</button>
+            </div>
+            <div id="daily-list-content" class="seller-list"></div>
+          </div>
 
           <div id="paginacao" class="pagination-bar" hidden>
             <div>
@@ -112,28 +207,51 @@
             <p id="insight-detalhe">Use um CNAE para resultado cirurgico ou uma palavra-chave para radar de aderencia.</p>
           </div>
 
+          <div class="solution-strip" id="solution-strip" hidden>
+            <div class="solution-card is-hot">
+              <span>Prioridade</span>
+              <strong id="solucao-prioridade">-</strong>
+              <small id="solucao-detalhe">Aguardando consulta</small>
+            </div>
+            <div class="solution-card">
+              <span>Melhor acao</span>
+              <strong id="solucao-acao">-</strong>
+              <small id="solucao-canal">Canal recomendado aparece aqui</small>
+            </div>
+            <div class="solution-card">
+              <span>Base acionavel</span>
+              <strong id="solucao-contatos">-</strong>
+              <small>Empresas com telefone ou e-mail</small>
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>CNPJ</th>
+                  <th>Score</th>
                   <th>Empresa</th>
                   <th>Fantasia</th>
+                  <th>Tags</th>
                   <th>CNAE</th>
                   <th>UF</th>
                   <th>Cidade/Codigo</th>
                   <th>Telefone</th>
                   <th>Email</th>
+                  <th>Status</th>
+                  <th>Acao</th>
                   <th>API</th>
                 </tr>
               </thead>
               <tbody id="tabela-resultados">
                 <tr>
-                  <td colspan="9" class="empty-state">Nenhuma busca realizada.</td>
+                  <td colspan="13" class="empty-state">Nenhuma busca realizada.</td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <div id="modo-vendedor-lista" class="seller-list" hidden></div>
         </section>
       </section>
     </div>
@@ -202,35 +320,110 @@
       }
     ];
 
-    const form = document.querySelector("#form-busca");
-    const inputBusca = document.querySelector("#busca");
-    const botaoBuscar = document.querySelector("#buscar");
-    const botaoLimpar = document.querySelector("#limpar");
-    const botaoExportar = document.querySelector("#exportar");
-    const botaoAtualizarLote = document.querySelector("#atualizar-lote");
-    const resumo = document.querySelector("#resumo");
-    const mensagem = document.querySelector("#mensagem");
-    const tabela = document.querySelector("#tabela-resultados");
-    const listaAtalhos = document.querySelector("#lista-atalhos");
-    const metricaTotal = document.querySelector("#metrica-total");
-    const metricaStatus = document.querySelector("#metrica-status");
-    const metricaTelefone = document.querySelector("#metrica-telefone");
-    const metricaEmail = document.querySelector("#metrica-email");
-    const insightBar = document.querySelector("#insight-bar");
-    const insightPrincipal = document.querySelector("#insight-principal");
-    const insightDetalhe = document.querySelector("#insight-detalhe");
-    const paginacao = document.querySelector("#paginacao");
-    const paginaInfo = document.querySelector("#pagina-info");
-    const paginaRange = document.querySelector("#pagina-range");
-    const paginaAnterior = document.querySelector("#pagina-anterior");
-    const paginaProxima = document.querySelector("#pagina-proxima");
+    const $ = (seletor) => document.querySelector(seletor);
+    const form = $("#form-busca");
+    const inputBusca = $("#busca");
+    const botaoBuscar = $("#buscar");
+    const botaoLimpar = $("#limpar");
+    const botaoExportar = $("#exportar");
+    const botaoAtualizarLote = $("#atualizar-lote");
+    const botaoListaDia = $("#lista-dia");
+    const botaoCopiarVisiveis = $("#copiar-visiveis");
+    const resumo = $("#resumo");
+    const mensagem = $("#mensagem");
+    const tabela = $("#tabela-resultados");
+    const listaVendedor = $("#modo-vendedor-lista");
+    const listaAtalhos = $("#lista-atalhos");
+    const sugestoesBusca = $("#sugestoes-busca");
+    const metricaTotal = $("#metrica-total");
+    const metricaStatus = $("#metrica-status");
+    const metricaTelefone = $("#metrica-telefone");
+    const metricaEmail = $("#metrica-email");
+    const insightBar = $("#insight-bar");
+    const insightPrincipal = $("#insight-principal");
+    const insightDetalhe = $("#insight-detalhe");
+    const solutionStrip = $("#solution-strip");
+    const solucaoPrioridade = $("#solucao-prioridade");
+    const solucaoDetalhe = $("#solucao-detalhe");
+    const solucaoAcao = $("#solucao-acao");
+    const solucaoCanal = $("#solucao-canal");
+    const solucaoContatos = $("#solucao-contatos");
+    const paginacao = $("#paginacao");
+    const paginaInfo = $("#pagina-info");
+    const paginaRange = $("#pagina-range");
+    const paginaAnterior = $("#pagina-anterior");
+    const paginaProxima = $("#pagina-proxima");
+    const barraComercial = $("#commercial-toolbar");
+    const filtrosRapidos = $("#filtros-rapidos");
+    const ordenacao = $("#ordenacao");
+    const modoVendedor = $("#modo-vendedor");
+    const botaoLimparFiltros = $("#limpar-filtros");
+    const gradeExecutiva = $("#executive-grid");
+    const leadCounter = $("#lead-counter");
+    const rankingGrid = $("#ranking-grid");
+    const rankingLocal = $("#ranking-local");
+    const rankingCnae = $("#ranking-cnae");
+    const templatesAbordagem = $("#templates-abordagem");
+    const dailyList = $("#daily-list");
+    const dailyListContent = $("#daily-list-content");
+    const fecharListaDia = $("#fechar-lista-dia");
 
-    let buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
+    const STORAGE_KEYS = {
+      favoritos: "vortech.favoritos",
+      status: "vortech.status",
+      notas: "vortech.notas",
+      historico: "vortech.historico"
+    };
+
+    const STATUS_LEAD = ["Novo", "Contatado", "Sem resposta", "Interessado", "Descartar"];
+    const TERMOS_SCORE = ["solda", "soldagem", "ferramentas", "ferragens", "gases", "maquinas", "maquina", "inversora", "mig", "tig", "eletrodo", "distribuidor", "revenda", "industrial"];
+    const sugestoesRelacionadas = {
+      solda: ["Soldagem", "MIG", "TIG", "Eletrodo", "Maquina de Solda", "Inversora"],
+      gases: ["Oxigenio", "Argonio", "Acetileno", "Cilindros", "Reguladores"],
+      ferramentas: ["Ferragens", "Abrasivos", "Maquinas", "Suprimentos"]
+    };
+    const templates = {
+      "Primeiro contato": "Ola, tudo bem? Aqui e da Vortech Equipamentos. Trabalhamos com solucoes para solda, corte, gases e ferramentas industriais. Posso falar com o responsavel por compras?",
+      "Follow-up": "Ola, passando para retomar nosso contato. Posso te enviar uma cotacao objetiva de equipamentos, consumiveis ou suprimentos tecnicos da Vortech?",
+      "Revenda": "Ola, aqui e da Vortech Equipamentos. Podemos apoiar sua revenda com mix tecnico para solda, ferramentas e fornecimento recorrente. Quem cuida de compras por ai?",
+      "Industria": "Ola, tudo bem? A Vortech atende industrias com solucoes para consumo recorrente, manutencao e produtividade em solda, corte e ferramentas. Posso falar com compras?",
+      "Gases": "Ola, aqui e da Vortech. Trabalhamos com solucoes ligadas a cilindros, reguladores, oxigenio, argonio e acetileno. Posso falar com o responsavel?",
+      "Solda": "Ola, aqui e da Vortech Equipamentos. Temos maquinas, inversoras, MIG, TIG, eletrodos e consumiveis. Posso falar com compras?",
+      "Ferramentas": "Ola, tudo bem? A Vortech trabalha com ferragens, ferramentas e suprimentos tecnicos. Posso falar com o responsavel por compras?"
+    };
+
+    let buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1, total: 0 };
     let empresasAtuais = [];
+    let empresasVisiveis = [];
     let totalBaseOnline = null;
     let atalhosVisiveis = atalhos;
+    let filtroAtual = "todos";
+    let ordenacaoAtual = "score";
+    let modoVendedorAtivo = false;
+    let estadoLocal = carregarEstadoLocal();
 
     mensagem.textContent = mensagemApiPadrao;
+
+    function lerJsonLocal(chave, fallback) {
+      try {
+        return JSON.parse(window.localStorage.getItem(chave)) || fallback;
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function carregarEstadoLocal() {
+      return {
+        favoritos: lerJsonLocal(STORAGE_KEYS.favoritos, {}),
+        status: lerJsonLocal(STORAGE_KEYS.status, {}),
+        notas: lerJsonLocal(STORAGE_KEYS.notas, {}),
+        historico: lerJsonLocal(STORAGE_KEYS.historico, [])
+      };
+    }
+
+    function salvarLocal(chave, valor) {
+      window.localStorage.setItem(chave, JSON.stringify(valor));
+    }
 
     function validarApiUrl() {
       if (!API_URL) {
@@ -267,10 +460,230 @@
       return valor || "-";
     }
 
+    function normalizarTexto(valor) {
+      return String(valor || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    }
+
+    function chaveEmpresa(empresa) {
+      return limparNumeros(empresa?.cnpj) || normalizarTexto(empresa?.razaoSocial || empresa?.nomeFantasia);
+    }
+
+    function campoCidade(empresa) {
+      return empresa.cidade || empresa.municipio || empresa.municipioCodigo || "";
+    }
+
+    function campoUf(empresa) {
+      return empresa.uf || empresa.estado || "";
+    }
+
+    function temTelefone(empresa) {
+      return Boolean(String(empresa.telefone1 || empresa.telefone || "").trim());
+    }
+
+    function temEmail(empresa) {
+      return Boolean(String(empresa.email || "").trim());
+    }
+
+    function textoBaseEmpresa(empresa) {
+      return normalizarTexto([
+        empresa.razaoSocial,
+        empresa.nomeFantasia,
+        empresa.cnaePrincipal,
+        empresa.cnaeDescricao,
+        empresa.atividadePrincipal,
+        empresa.email,
+        campoCidade(empresa),
+        campoUf(empresa)
+      ].join(" "));
+    }
+
+    function gerarTags(empresa) {
+      const base = textoBaseEmpresa(empresa);
+      const tags = new Set();
+
+      if (/revenda|varejo|atacado|comerc|distrib/.test(base)) tags.add("Revenda");
+      if (/industr|fabric|metalurg|manutenc|usinagem/.test(base)) tags.add("Industria");
+      if (/ferrament|ferragen|abrasiv|supriment/.test(base)) tags.add("Ferramentas");
+      if (/gas|gases|oxigen|argon|acetilen|cilindr|regulador/.test(base)) tags.add("Gases");
+      if (/solda|soldag|mig|tig|eletrodo|oxicorte|plasma|arame/.test(base)) tags.add("Solda");
+      if (/maquina|maquinas|equipament|inversor/.test(base)) tags.add("Maquinas");
+      if (/distribuidor|distribuicao|atacad/.test(base)) tags.add("Distribuidor");
+      if (/consumivel|arame|eletrodo|vareta|tocha|abrasiv/.test(base)) tags.add("Consumiveis");
+
+      return Array.from(tags);
+    }
+
+    function calcularScore(empresa) {
+      const base = textoBaseEmpresa(empresa);
+      let pontos = 0;
+
+      if (temTelefone(empresa)) pontos += 24;
+      if (temEmail(empresa)) pontos += 18;
+      if (empresa.nomeFantasia) pontos += 8;
+      if (empresa.cnaePrincipal) pontos += 12;
+      if (campoUf(empresa)) pontos += 5;
+      if (campoCidade(empresa)) pontos += 6;
+
+      TERMOS_SCORE.forEach((termo) => {
+        if (base.includes(termo)) pontos += 5;
+      });
+
+      const tags = gerarTags(empresa);
+      pontos += Math.min(tags.length * 4, 20);
+      pontos = Math.min(pontos, 100);
+
+      let prioridade = "Fraco";
+      if (pontos >= 78) prioridade = "Lead quente";
+      else if (pontos >= 58) prioridade = "Bom lead";
+      else if (pontos >= 38) prioridade = "Medio";
+
+      const acao = !temTelefone(empresa) && !temEmail(empresa)
+        ? "Enriquecer pela API"
+        : temTelefone(empresa)
+          ? "Chamar no WhatsApp"
+          : "Enviar e-mail curto";
+
+      return { pontos, prioridade, acao, tags };
+    }
+
+    function perfilPrincipal(tags) {
+      return ["Revenda", "Industria", "Gases", "Ferramentas", "Solda"].find((tag) => tags.includes(tag)) || "Primeiro contato";
+    }
+
+    function mensagemWhatsapp(lead) {
+      const perfil = perfilPrincipal(lead.tags);
+      return templates[perfil] || templates["Primeiro contato"];
+    }
+
+    function mensagemEmail(lead) {
+      const empresa = lead.nomeFantasia || lead.razaoSocial || "sua empresa";
+      const perfil = perfilPrincipal(lead.tags);
+      const gancho = {
+        Revenda: "parceria, mix tecnico e fornecimento recorrente",
+        Industria: "consumo recorrente, manutencao e produtividade",
+        Gases: "cilindros, reguladores, oxigenio, argonio e acetileno",
+        Ferramentas: "ferragens, ferramentas e suprimentos tecnicos",
+        Solda: "maquinas, inversoras, MIG, TIG, eletrodos e consumiveis"
+      }[perfil] || "solucoes para solda, corte, gases e ferramentas industriais";
+
+      return `Ola, tudo bem?\n\nAqui e da Vortech Equipamentos. Vi que a ${empresa} pode ter aderencia com ${gancho}.\n\nPosso falar com o responsavel por compras para entender se conseguimos ajudar?\n\nObrigado.`;
+    }
+
+    function enriquecerEmpresa(empresa) {
+      const chave = chaveEmpresa(empresa);
+      const score = calcularScore(empresa);
+
+      return {
+        ...empresa,
+        chaveLocal: chave,
+        score: score.pontos,
+        prioridade: score.prioridade,
+        acaoSugerida: score.acao,
+        tags: score.tags,
+        favorito: Boolean(estadoLocal.favoritos[chave]),
+        status: estadoLocal.status[chave] || "Novo",
+        observacao: estadoLocal.notas[chave] || "",
+        telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
+        cidadeComercial: campoCidade(empresa),
+        ufComercial: campoUf(empresa)
+      };
+    }
+
+    function textoContato(lead) {
+      return [
+        `CNPJ: ${formatarCnpj(lead.cnpj)}`,
+        `Razao social: ${texto(lead.razaoSocial)}`,
+        `Nome fantasia: ${texto(lead.nomeFantasia)}`,
+        `Telefone: ${texto(lead.telefone1 || lead.telefone)}`,
+        `E-mail: ${texto(lead.email)}`,
+        `Cidade/UF: ${texto(lead.cidadeComercial)}/${texto(lead.ufComercial)}`,
+        `CNAE: ${texto(lead.cnaePrincipal)}`,
+        `Score: ${lead.score} - ${lead.prioridade}`,
+        `Acao sugerida: ${lead.acaoSugerida}`,
+        `Tags: ${lead.tags.join(", ") || "-"}`
+      ].join("\n");
+    }
+
+    function urlWhatsapp(lead) {
+      const telefone = lead.telefoneLimpo.startsWith("55") ? lead.telefoneLimpo : `55${lead.telefoneLimpo}`;
+      return `https://wa.me/${telefone}?text=${encodeURIComponent(mensagemWhatsapp(lead))}`;
+    }
+
+    async function copiarTexto(valor, feedback = "Copiado.") {
+      try {
+        await navigator.clipboard.writeText(valor);
+        mensagem.textContent = feedback;
+      } catch (error) {
+        const area = document.createElement("textarea");
+        area.value = valor;
+        document.body.appendChild(area);
+        area.select();
+        document.execCommand("copy");
+        area.remove();
+        mensagem.textContent = feedback;
+      }
+    }
+
+    function classeScore(lead) {
+      if (lead.prioridade === "Lead quente") return "score-hot";
+      if (lead.prioridade === "Bom lead") return "score-good";
+      if (lead.prioridade === "Medio") return "score-mid";
+      return "score-low";
+    }
+
+    function escaparAtributo(valor) {
+      return escaparHtml(valor).replaceAll("\n", " ");
+    }
+
+
     function atualizarInsight(titulo, detalhe) {
       insightBar.hidden = false;
       insightPrincipal.textContent = titulo;
       insightDetalhe.textContent = detalhe;
+    }
+
+    function atualizarSolucao(empresas, total) {
+      const lista = Array.isArray(empresas) ? empresas : [];
+      const comTelefone = lista.filter(temTelefone).length;
+      const comEmail = lista.filter(temEmail).length;
+      const acionaveis = lista.filter((empresa) => temTelefone(empresa) || temEmail(empresa)).length;
+      const baseComparacao = Math.max(lista.length, 1);
+      const taxaAcionavel = Math.round((acionaveis / baseComparacao) * 100);
+
+      solutionStrip.hidden = false;
+      solucaoContatos.textContent = `${formatarNumero(acionaveis)} / ${formatarNumero(lista.length)}`;
+
+      if (!total) {
+        solucaoPrioridade.textContent = "Sem leads";
+        solucaoDetalhe.textContent = "Ajuste o CNAE ou tente uma palavra-chave mais ampla";
+        solucaoAcao.textContent = "Nova busca";
+        solucaoCanal.textContent = "Use os atalhos laterais para acelerar a consulta";
+        return;
+      }
+
+      if (taxaAcionavel >= 70 && comTelefone >= comEmail) {
+        solucaoPrioridade.textContent = "Alta";
+        solucaoDetalhe.textContent = `${taxaAcionavel}% da amostra tem contato direto`;
+        solucaoAcao.textContent = "Ligar primeiro";
+        solucaoCanal.textContent = "Telefone disponivel para abordagem comercial";
+        return;
+      }
+
+      if (taxaAcionavel >= 45 || comEmail > comTelefone) {
+        solucaoPrioridade.textContent = "Media";
+        solucaoDetalhe.textContent = `${taxaAcionavel}% da amostra esta acionavel`;
+        solucaoAcao.textContent = "Campanha segmentada";
+        solucaoCanal.textContent = comEmail ? "E-mail e telefone como reforco" : "Telefone como canal principal";
+        return;
+      }
+
+      solucaoPrioridade.textContent = "Enriquecer";
+      solucaoDetalhe.textContent = "Poucos contatos completos nesta pagina";
+      solucaoAcao.textContent = "Atualizar pela API";
+      solucaoCanal.textContent = "Use Atualizar Tudo antes da exportacao";
     }
 
     function atualizarPaginacao(dados) {
@@ -347,6 +760,7 @@
           </div>
         </section>
       `).join("");
+      renderizarHistorico();
     }
 
     async function atualizarAtalhosComDados() {
@@ -387,31 +801,208 @@
       }
     }
 
-    function renderizarLinhas(empresas) {
-      empresasAtuais = empresas;
+    function filtrarLeads(lista) {
+      return lista.filter((lead) => {
+        if (filtroAtual === "telefone") return temTelefone(lead);
+        if (filtroAtual === "email") return temEmail(lead);
+        if (filtroAtual === "completo") return temTelefone(lead) && temEmail(lead);
+        if (filtroAtual === "sem-contato") return !temTelefone(lead) && !temEmail(lead);
+        if (filtroAtual === "quentes") return lead.prioridade === "Lead quente";
+        if (filtroAtual === "favoritos") return lead.favorito;
+        if (filtroAtual === "contatados") return lead.status === "Contatado";
+        return true;
+      });
+    }
 
-      if (!empresas.length) {
-        tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>';
+    function ordenarLeads(lista) {
+      const ordenados = [...lista];
+      const porTexto = (campo) => ordenados.sort((a, b) => normalizarTexto(a[campo]).localeCompare(normalizarTexto(b[campo])));
+
+      if (ordenacaoAtual === "empresa") return porTexto("razaoSocial");
+      if (ordenacaoAtual === "cidade") return porTexto("cidadeComercial");
+      if (ordenacaoAtual === "uf") return porTexto("ufComercial");
+      if (ordenacaoAtual === "telefone") return ordenados.sort((a, b) => Number(temTelefone(b)) - Number(temTelefone(a)) || b.score - a.score);
+      if (ordenacaoAtual === "email") return ordenados.sort((a, b) => Number(temEmail(b)) - Number(temEmail(a)) || b.score - a.score);
+      if (ordenacaoAtual === "status") return porTexto("status");
+
+      return ordenados.sort((a, b) => b.score - a.score);
+    }
+
+    function detectarDuplicidades(lista) {
+      const cnpjs = new Map();
+      const nomes = new Map();
+
+      lista.forEach((lead) => {
+        const cnpj = limparNumeros(lead.cnpj);
+        const nome = normalizarTexto(lead.razaoSocial || lead.nomeFantasia).replace(/[^a-z0-9]/g, "").slice(0, 18);
+        if (cnpj) cnpjs.set(cnpj, (cnpjs.get(cnpj) || 0) + 1);
+        if (nome.length > 10) nomes.set(nome, (nomes.get(nome) || 0) + 1);
+      });
+
+      return lista.reduce((mapa, lead) => {
+        const cnpj = limparNumeros(lead.cnpj);
+        const nome = normalizarTexto(lead.razaoSocial || lead.nomeFantasia).replace(/[^a-z0-9]/g, "").slice(0, 18);
+        mapa[lead.chaveLocal] = (cnpj && cnpjs.get(cnpj) > 1) || (nome && nomes.get(nome) > 1);
+        return mapa;
+      }, {});
+    }
+
+    function atualizarResumoExecutivo() {
+      const total = empresasAtuais.length;
+      const visiveis = empresasVisiveis.length;
+      const comTelefone = empresasAtuais.filter(temTelefone).length;
+      const comEmail = empresasAtuais.filter(temEmail).length;
+      const completos = empresasAtuais.filter((lead) => temTelefone(lead) && temEmail(lead)).length;
+      const quentes = empresasAtuais.filter((lead) => lead.prioridade === "Lead quente").length;
+      const enriquecer = empresasAtuais.filter((lead) => !temTelefone(lead) || !temEmail(lead)).length;
+      const qualidade = total ? Math.round(((comTelefone + comEmail + quentes) / (total * 3)) * 100) : 0;
+      const visiveisQuentes = empresasVisiveis.filter((lead) => lead.prioridade === "Lead quente").length;
+      const visiveisContato = empresasVisiveis.filter((lead) => temTelefone(lead) || temEmail(lead)).length;
+      let estrategia = "Enriquecimento pela API";
+
+      if (quentes >= Math.max(3, total * 0.2) && comTelefone) estrategia = "WhatsApp e ligacao";
+      else if (comTelefone >= comEmail) estrategia = "Ligacao";
+      else if (comEmail) estrategia = "Campanha de e-mail";
+
+      $("#exec-total").textContent = formatarNumero(total);
+      $("#exec-visivel").textContent = `${formatarNumero(visiveis)} visiveis`;
+      $("#exec-telefone").textContent = formatarNumero(comTelefone);
+      $("#exec-email").textContent = `${formatarNumero(comEmail)} com e-mail`;
+      $("#exec-completo").textContent = formatarNumero(completos);
+      $("#exec-enriquecer").textContent = `${formatarNumero(enriquecer)} precisam enriquecer`;
+      $("#exec-estrategia").textContent = estrategia;
+      $("#exec-qualidade").textContent = `Qualidade da base: ${qualidade}%`;
+      $("#contador-total").textContent = `Total da busca: ${formatarNumero(buscaAtual.total || total)}`;
+      $("#contador-visivel").textContent = `Visiveis: ${formatarNumero(visiveis)}`;
+      $("#contador-quentes").textContent = `Quentes visiveis: ${formatarNumero(visiveisQuentes)}`;
+      $("#contador-contatos").textContent = `Com telefone/e-mail: ${formatarNumero(visiveisContato)}`;
+    }
+
+    function atualizarRankings() {
+      const contagem = (lista, chaveFn) => {
+        const mapa = new Map();
+        lista.forEach((lead) => {
+          const chave = chaveFn(lead);
+          if (chave && chave !== "-") mapa.set(chave, (mapa.get(chave) || 0) + 1);
+        });
+        return Array.from(mapa.entries()).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      };
+      const porUf = contagem(empresasAtuais, (lead) => lead.ufComercial);
+      const porCidade = contagem(empresasAtuais, (lead) => `${lead.cidadeComercial}/${lead.ufComercial}`);
+      const porCnae = contagem(empresasAtuais, (lead) => lead.cnaePrincipal);
+      const regioes = { Norte: ["AC", "AP", "AM", "PA", "RO", "RR", "TO"], Nordeste: ["AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE"], "Centro-Oeste": ["DF", "GO", "MT", "MS"], Sudeste: ["ES", "MG", "RJ", "SP"], Sul: ["PR", "RS", "SC"] };
+      const porRegiao = contagem(empresasAtuais, (lead) => Object.keys(regioes).find((regiao) => regioes[regiao].includes(String(lead.ufComercial).toUpperCase())) || "");
+
+      rankingLocal.innerHTML = [
+        `<p>UF lider: <strong>${escaparHtml(porUf[0]?.[0] || "-")}</strong></p>`,
+        `<p>Cidade lider: <strong>${escaparHtml(porCidade[0]?.[0] || "-")}</strong></p>`,
+        `<p>Regioes: ${porRegiao.map(([nome, total]) => `<strong>${escaparHtml(nome)}</strong> ${formatarNumero(total)}`).join(" | ") || "-"}</p>`
+      ].join("");
+
+      rankingCnae.innerHTML = porCnae.length
+        ? porCnae.map(([nome, total]) => `<p><strong>${escaparHtml(nome)}</strong><span>${formatarNumero(total)}</span></p>`).join("")
+        : "<p>Sem CNAE informado.</p>";
+    }
+
+    function renderizarTemplates() {
+      templatesAbordagem.innerHTML = Object.keys(templates).map((nome) => `
+        <button class="template-button" type="button" data-template="${escaparAtributo(nome)}">
+          ${escaparHtml(nome)}
+        </button>
+      `).join("");
+    }
+
+    function opcoesStatus(statusAtual, chave) {
+      return `
+        <select class="status-select" data-status="${escaparAtributo(chave)}">
+          ${STATUS_LEAD.map((status) => `<option value="${status}" ${status === statusAtual ? "selected" : ""}>${status}</option>`).join("")}
+        </select>
+      `;
+    }
+
+    function renderizarAcoesLead(lead, index) {
+      return `
+        <div class="lead-actions">
+          ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+          <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
+          <button class="mini-button" type="button" data-email="${index}">E-mail</button>
+          <button class="favorite-button ${lead.favorito ? "is-active" : ""}" type="button" data-favorito="${index}" title="Favorito">★</button>
+        </div>
+      `;
+    }
+
+    function renderizarLinhas(empresas) {
+      empresasAtuais = empresas.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
+    }
+
+    function aplicarFiltrosERenderizar() {
+      empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
+      const duplicados = detectarDuplicidades(empresasAtuais);
+      const colspan = 13;
+
+      atualizarResumoExecutivo();
+      atualizarRankings();
+      barraComercial.hidden = !empresasAtuais.length;
+      gradeExecutiva.hidden = !empresasAtuais.length;
+      leadCounter.hidden = !empresasAtuais.length;
+      rankingGrid.hidden = !empresasAtuais.length;
+      botaoListaDia.disabled = !empresasAtuais.length;
+      botaoCopiarVisiveis.disabled = !empresasVisiveis.length;
+
+      if (!empresasAtuais.length) {
+        tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>`;
+        listaVendedor.hidden = true;
+        listaVendedor.innerHTML = "";
         return;
       }
 
-      tabela.innerHTML = empresas.map((empresa, index) => `
-        <tr data-index="${index}">
-          <td data-label="CNPJ">${escaparHtml(formatarCnpj(empresa.cnpj))}</td>
-          <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(empresa.razaoSocial)}</td>
-          <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(empresa.nomeFantasia)}</td>
-          <td data-label="CNAE" data-campo="cnaePrincipal">${escaparHtml(empresa.cnaePrincipal)}</td>
-          <td data-label="UF" data-campo="uf">${escaparHtml(empresa.uf || empresa.estado)}</td>
-          <td data-label="Cidade/Codigo" data-campo="cidade">${escaparHtml(empresa.municipioCodigo || empresa.cidade)}</td>
-          <td data-label="Telefone" data-campo="telefone">${escaparHtml(empresa.telefone1 || empresa.telefone)}</td>
-          <td data-label="Email" data-campo="email">${escaparHtml(empresa.email)}</td>
-          <td data-label="API">
-            <button class="mini-button" type="button" data-atualizar="${index}">
-              Atualizar
-            </button>
-          </td>
-        </tr>
-      `).join("");
+      if (!empresasVisiveis.length) {
+        tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum lead atende aos filtros atuais.</td></tr>`;
+        listaVendedor.innerHTML = '<div class="empty-state">Nenhum lead visivel no modo vendedor.</div>';
+      } else {
+        tabela.innerHTML = empresasVisiveis.map((lead) => {
+          const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
+          const contatoCompleto = temTelefone(lead) && temEmail(lead);
+          return `
+            <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""}" data-index="${index}">
+              <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${duplicados[lead.chaveLocal] ? '<span class="dup-badge">Possivel duplicidade</span>' : ""}</td>
+              <td data-label="Score"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato completo</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}</td>
+              <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
+              <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
+              <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
+              <td data-label="CNAE" data-campo="cnaePrincipal">${escaparHtml(lead.cnaePrincipal)}</td>
+              <td data-label="UF" data-campo="uf">${escaparHtml(lead.ufComercial)}</td>
+              <td data-label="Cidade/Codigo" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>
+              <td data-label="Telefone" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>
+              <td data-label="Email" data-campo="email">${escaparHtml(lead.email)}</td>
+              <td data-label="Status">${opcoesStatus(lead.status, lead.chaveLocal)}<textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtml(lead.observacao)}</textarea></td>
+              <td data-label="Acao"><strong>${escaparHtml(lead.acaoSugerida)}</strong>${renderizarAcoesLead(lead, index)}</td>
+              <td data-label="API"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>
+            </tr>
+          `;
+        }).join("");
+
+        listaVendedor.innerHTML = empresasVisiveis.map((lead) => {
+          const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
+          return `
+            <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""}">
+              <div>
+                <strong>${escaparHtml(lead.nomeFantasia || lead.razaoSocial)}</strong>
+                <span>${escaparHtml(lead.cidadeComercial)}/${escaparHtml(lead.ufComercial)}</span>
+              </div>
+              <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
+              <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
+              ${opcoesStatus(lead.status, lead.chaveLocal)}
+              <textarea class="note-input" rows="2" placeholder="Anotacao rapida" data-nota="${escaparAtributo(lead.chaveLocal)}">${escaparHtml(lead.observacao)}</textarea>
+              ${renderizarAcoesLead(lead, index)}
+            </article>
+          `;
+        }).join("");
+      }
+
+      listaVendedor.hidden = !modoVendedorAtivo;
+      document.querySelector(".table-wrap").hidden = modoVendedorAtivo;
     }
 
     async function carregarMetricas() {
@@ -447,9 +1038,7 @@
     }
 
     function aplicarDadosAtualizados(index, empresaAtualizada) {
-      const linha = tabela.querySelector(`[data-index="${index}"]`);
-
-      if (!linha) {
+      if (!empresasAtuais[index]) {
         return;
       }
 
@@ -457,15 +1046,8 @@
         ...empresasAtuais[index],
         ...empresaAtualizada
       };
-
-      const dados = empresasAtuais[index];
-      linha.querySelector('[data-campo="razaoSocial"]').textContent = texto(dados.razaoSocial);
-      linha.querySelector('[data-campo="nomeFantasia"]').textContent = texto(dados.nomeFantasia);
-      linha.querySelector('[data-campo="cnaePrincipal"]').textContent = texto(dados.cnaePrincipal);
-      linha.querySelector('[data-campo="uf"]').textContent = texto(dados.uf || dados.estado);
-      linha.querySelector('[data-campo="cidade"]').textContent = texto(dados.cidade || dados.municipioCodigo);
-      linha.querySelector('[data-campo="telefone"]').textContent = texto(dados.telefone || dados.telefone1);
-      linha.querySelector('[data-campo="email"]').textContent = texto(dados.email);
+      empresasAtuais[index] = enriquecerEmpresa(empresasAtuais[index]);
+      aplicarFiltrosERenderizar();
     }
 
     function definirCarregando(ativo) {
@@ -473,6 +1055,9 @@
       inputBusca.disabled = ativo;
       botaoBuscar.textContent = ativo ? "Buscando..." : "Buscar";
       document.querySelector("#painel-resultados").classList.toggle("is-loading", ativo);
+      if (ativo) {
+        mensagem.textContent = "Buscando prospects na base...";
+      }
     }
 
     function marcarAtalhoAtivo(tipo, valor) {
@@ -514,15 +1099,70 @@
         if (botao) {
           botao.textContent = "OK";
         }
+        mensagem.textContent = "Lead enriquecido pela API.";
 
         return true;
       } catch (error) {
         if (botao) {
           botao.textContent = "Erro";
         }
+        mensagem.textContent = "Nao foi possivel enriquecer este CNPJ agora.";
 
         return false;
       }
+    }
+
+    function salvarBuscaHistorico(valor, tipo) {
+      const registro = {
+        valor,
+        tipo,
+        data: new Date().toLocaleString("pt-BR")
+      };
+      estadoLocal.historico = [
+        registro,
+        ...estadoLocal.historico.filter((item) => !(item.valor === valor && item.tipo === tipo))
+      ].slice(0, 8);
+      salvarLocal(STORAGE_KEYS.historico, estadoLocal.historico);
+      renderizarHistorico();
+    }
+
+    function renderizarHistorico() {
+      const existente = document.querySelector("#historico-buscas");
+      if (existente) existente.remove();
+
+      const html = `
+        <section class="shortcut-group" id="historico-buscas">
+          <h3>Historico</h3>
+          <div class="shortcut-buttons">
+            ${estadoLocal.historico.length ? estadoLocal.historico.map((item) => `
+              <button class="cnae-chip history-chip" type="button" data-historico-tipo="${escaparAtributo(item.tipo)}" data-historico-valor="${escaparAtributo(item.valor)}">
+                <strong>${escaparHtml(item.tipo === "cnae" ? "CNAE" : "Termo")}</strong>
+                <span>${escaparHtml(item.valor)}</span>
+                <em>${escaparHtml(item.data)}</em>
+              </button>
+            `).join("") : '<p class="history-empty">Sem buscas recentes.</p>'}
+            <button id="limpar-historico" class="ghost-button compact-button" type="button">Limpar historico</button>
+            <button id="resetar-local" class="ghost-button compact-button" type="button">Resetar dados locais</button>
+          </div>
+        </section>
+      `;
+      listaAtalhos.insertAdjacentHTML("beforeend", html);
+    }
+
+    function atualizarSugestoes() {
+      const termo = normalizarTexto(inputBusca.value);
+      const chave = Object.keys(sugestoesRelacionadas).find((item) => termo.includes(item));
+
+      if (!chave) {
+        sugestoesBusca.hidden = true;
+        sugestoesBusca.innerHTML = "";
+        return;
+      }
+
+      sugestoesBusca.hidden = false;
+      sugestoesBusca.innerHTML = sugestoesRelacionadas[chave].map((sugestao) => `
+        <button type="button" class="suggestion-chip" data-sugestao="${escaparAtributo(sugestao)}">${escaparHtml(sugestao)}</button>
+      `).join("");
     }
 
     async function executarBusca(valor, tipo = "auto", pagina = 1) {
@@ -568,7 +1208,8 @@
           tipo: buscaPorCnae ? "cnae" : "termo",
           valor: buscaPorCnae ? dados.cnae : dados.termo,
           pagina: dados.pagina || 1,
-          totalPaginas: dados.totalPaginas || 1
+          totalPaginas: dados.totalPaginas || 1,
+          total: dados.total || 0
         };
 
         const exibidos = dados.exibidos || dados.empresas?.length || 0;
@@ -594,16 +1235,25 @@
           );
         }
         atualizarPaginacao(dados);
+        atualizarSolucao(dados.empresas || [], dados.total);
         botaoExportar.disabled = false;
         botaoAtualizarLote.disabled = !dados.empresas?.length;
         renderizarLinhas(dados.empresas || []);
+        salvarBuscaHistorico(buscaAtual.valor, buscaAtual.tipo);
       } catch (error) {
         buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
         empresasAtuais = [];
+        empresasVisiveis = [];
         paginacao.hidden = true;
+        solutionStrip.hidden = true;
+        barraComercial.hidden = true;
+        gradeExecutiva.hidden = true;
+        leadCounter.hidden = true;
+        rankingGrid.hidden = true;
+        dailyList.hidden = true;
         resumo.textContent = "Erro na consulta";
-        mensagem.textContent = error.message;
-        tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
+        mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
+        tabela.innerHTML = '<tr><td colspan="13" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
       } finally {
         definirCarregando(false);
       }
@@ -615,6 +1265,33 @@
     });
 
     listaAtalhos.addEventListener("click", (event) => {
+      const historico = event.target.closest("[data-historico-valor]");
+      if (historico) {
+        inputBusca.value = historico.dataset.historicoValor;
+        executarBusca(historico.dataset.historicoValor, historico.dataset.historicoTipo);
+        return;
+      }
+
+      if (event.target.closest("#limpar-historico")) {
+        estadoLocal.historico = [];
+        salvarLocal(STORAGE_KEYS.historico, estadoLocal.historico);
+        renderizarAtalhos();
+        mensagem.textContent = "Historico de buscas limpo.";
+        return;
+      }
+
+      if (event.target.closest("#resetar-local")) {
+        estadoLocal.favoritos = {};
+        estadoLocal.status = {};
+        estadoLocal.notas = {};
+        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
+        salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
+        salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
+        renderizarLinhas(empresasAtuais);
+        mensagem.textContent = "Favoritos, status e anotacoes locais foram resetados.";
+        return;
+      }
+
       const botao = event.target.closest("[data-valor]");
 
       if (!botao) {
@@ -626,6 +1303,30 @@
     });
 
     tabela.addEventListener("click", (event) => {
+      const copiar = event.target.closest("[data-copiar]");
+      if (copiar) {
+        copiarTexto(textoContato(empresasAtuais[Number(copiar.dataset.copiar)]), "Contato copiado para a area de transferencia.");
+        return;
+      }
+
+      const email = event.target.closest("[data-email]");
+      if (email) {
+        copiarTexto(mensagemEmail(empresasAtuais[Number(email.dataset.email)]), "Mensagem de e-mail copiada.");
+        return;
+      }
+
+      const favorito = event.target.closest("[data-favorito]");
+      if (favorito) {
+        const lead = empresasAtuais[Number(favorito.dataset.favorito)];
+        estadoLocal.favoritos[lead.chaveLocal] = !lead.favorito;
+        if (!estadoLocal.favoritos[lead.chaveLocal]) delete estadoLocal.favoritos[lead.chaveLocal];
+        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
+        empresasAtuais[Number(favorito.dataset.favorito)] = enriquecerEmpresa(lead);
+        aplicarFiltrosERenderizar();
+        mensagem.textContent = "Favorito salvo.";
+        return;
+      }
+
       const botao = event.target.closest("[data-atualizar]");
 
       if (!botao) {
@@ -633,6 +1334,100 @@
       }
 
       atualizarCnpj(Number(botao.dataset.atualizar));
+    });
+
+    tabela.addEventListener("change", (event) => {
+      const seletor = event.target.closest("[data-status]");
+      if (!seletor) return;
+
+      estadoLocal.status[seletor.dataset.status] = seletor.value;
+      salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
+      mensagem.textContent = "Status do lead salvo.";
+    });
+
+    tabela.addEventListener("input", (event) => {
+      const nota = event.target.closest("[data-nota]");
+      if (!nota) return;
+
+      estadoLocal.notas[nota.dataset.nota] = nota.value;
+      salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
+      const lead = empresasAtuais.find((item) => item.chaveLocal === nota.dataset.nota);
+      if (lead) lead.observacao = nota.value;
+      mensagem.textContent = "Anotacao salva localmente.";
+    });
+
+    listaVendedor.addEventListener("click", (event) => {
+      const copiar = event.target.closest("[data-copiar]");
+      if (copiar) {
+        copiarTexto(textoContato(empresasAtuais[Number(copiar.dataset.copiar)]), "Contato copiado para a area de transferencia.");
+        return;
+      }
+
+      const email = event.target.closest("[data-email]");
+      if (email) {
+        copiarTexto(mensagemEmail(empresasAtuais[Number(email.dataset.email)]), "Mensagem de e-mail copiada.");
+        return;
+      }
+
+      const favorito = event.target.closest("[data-favorito]");
+      if (favorito) {
+        const indice = Number(favorito.dataset.favorito);
+        const lead = empresasAtuais[indice];
+        estadoLocal.favoritos[lead.chaveLocal] = !lead.favorito;
+        if (!estadoLocal.favoritos[lead.chaveLocal]) delete estadoLocal.favoritos[lead.chaveLocal];
+        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
+        empresasAtuais[indice] = enriquecerEmpresa(lead);
+        aplicarFiltrosERenderizar();
+        mensagem.textContent = "Favorito salvo.";
+      }
+    });
+
+    listaVendedor.addEventListener("change", (event) => {
+      const seletor = event.target.closest("[data-status]");
+      if (!seletor) return;
+      estadoLocal.status[seletor.dataset.status] = seletor.value;
+      salvarLocal(STORAGE_KEYS.status, estadoLocal.status);
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
+      mensagem.textContent = "Status do lead salvo.";
+    });
+
+    listaVendedor.addEventListener("input", (event) => {
+      const nota = event.target.closest("[data-nota]");
+      if (!nota) return;
+      estadoLocal.notas[nota.dataset.nota] = nota.value;
+      salvarLocal(STORAGE_KEYS.notas, estadoLocal.notas);
+      mensagem.textContent = "Anotacao salva localmente.";
+    });
+
+    filtrosRapidos.addEventListener("click", (event) => {
+      const botao = event.target.closest("[data-filtro]");
+      if (!botao) return;
+
+      filtroAtual = botao.dataset.filtro;
+      filtrosRapidos.querySelectorAll("[data-filtro]").forEach((item) => item.classList.toggle("is-active", item === botao));
+      aplicarFiltrosERenderizar();
+    });
+
+    ordenacao.addEventListener("change", () => {
+      ordenacaoAtual = ordenacao.value;
+      aplicarFiltrosERenderizar();
+    });
+
+    modoVendedor.addEventListener("change", () => {
+      modoVendedorAtivo = modoVendedor.checked;
+      aplicarFiltrosERenderizar();
+    });
+
+    botaoLimparFiltros.addEventListener("click", () => {
+      filtroAtual = "todos";
+      ordenacaoAtual = "score";
+      ordenacao.value = "score";
+      filtrosRapidos.querySelectorAll("[data-filtro]").forEach((item) => item.classList.toggle("is-active", item.dataset.filtro === "todos"));
+      aplicarFiltrosERenderizar();
+      mensagem.textContent = "Filtros limpos.";
     });
 
     botaoAtualizarLote.addEventListener("click", async () => {
@@ -671,14 +1466,105 @@
       botaoExportar.disabled = !buscaAtual.valor;
     });
 
+    function csvValor(valor) {
+      return `"${String(valor || "").replaceAll('"', '""')}"`;
+    }
+
+    function exportarVisiveis() {
+      const cabecalho = [
+        "CNPJ", "Razao social", "Nome fantasia", "Telefone", "Email", "Cidade", "UF", "CNAE",
+        "Score", "Prioridade", "Acao sugerida", "Tags", "Status", "Observacao", "Mensagem WhatsApp", "Mensagem E-mail"
+      ];
+      const linhas = empresasVisiveis.map((lead) => [
+        formatarCnpj(lead.cnpj),
+        lead.razaoSocial,
+        lead.nomeFantasia,
+        lead.telefone1 || lead.telefone,
+        lead.email,
+        lead.cidadeComercial,
+        lead.ufComercial,
+        lead.cnaePrincipal,
+        lead.score,
+        lead.prioridade,
+        lead.acaoSugerida,
+        lead.tags.join(", "),
+        lead.status,
+        lead.observacao,
+        mensagemWhatsapp(lead),
+        mensagemEmail(lead)
+      ].map(csvValor).join(";"));
+      const conteudo = [cabecalho.map(csvValor).join(";"), ...linhas].join("\n");
+      const blob = new Blob([`\uFEFF${conteudo}`], { type: "text/csv;charset=utf-8" });
+      const link = document.createElement("a");
+      const data = new Date().toISOString().slice(0, 10);
+      const termo = normalizarTexto(buscaAtual.valor || "prospects").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+      link.href = URL.createObjectURL(blob);
+      link.download = `vortech-${termo}-${data}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      mensagem.textContent = "Exportacao dos resultados filtrados gerada.";
+    }
+
     botaoExportar.addEventListener("click", () => {
-      if (!buscaAtual.valor) {
+      if (!buscaAtual.valor) return;
+      if (empresasVisiveis.length) {
+        exportarVisiveis();
         return;
       }
 
       window.location.href = buscaAtual.tipo === "cnae"
         ? `${API_URL}/empresas/cnae/${encodeURIComponent(buscaAtual.valor)}/exportar`
         : `${API_URL}/empresas/busca/exportar?termo=${encodeURIComponent(buscaAtual.valor)}`;
+    });
+
+    botaoCopiarVisiveis.addEventListener("click", () => {
+      copiarTexto(empresasVisiveis.map(textoContato).join("\n\n---\n\n"), "Todos os contatos visiveis foram copiados.");
+    });
+
+    botaoListaDia.addEventListener("click", () => {
+      const lista = [...empresasAtuais]
+        .sort((a, b) => {
+          const prioridadeA = (a.prioridade === "Lead quente" ? 1000 : 0) + (temTelefone(a) ? 100 : 0) + (temTelefone(a) && temEmail(a) ? 50 : 0) + a.score;
+          const prioridadeB = (b.prioridade === "Lead quente" ? 1000 : 0) + (temTelefone(b) ? 100 : 0) + (temTelefone(b) && temEmail(b) ? 50 : 0) + b.score;
+          return prioridadeB - prioridadeA;
+        })
+        .slice(0, 20);
+
+      dailyList.hidden = false;
+      dailyListContent.innerHTML = lista.map((lead) => {
+        const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
+        return `
+          <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""}">
+            <div><strong>${escaparHtml(lead.nomeFantasia || lead.razaoSocial)}</strong><span>${escaparHtml(lead.cidadeComercial)}/${escaparHtml(lead.ufComercial)}</span></div>
+            <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
+            <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
+            ${renderizarAcoesLead(lead, index)}
+          </article>
+        `;
+      }).join("");
+      mensagem.textContent = "Lista do dia montada com os melhores leads da busca.";
+    });
+
+    fecharListaDia.addEventListener("click", () => {
+      dailyList.hidden = true;
+    });
+
+    templatesAbordagem.addEventListener("click", (event) => {
+      const botao = event.target.closest("[data-template]");
+      if (!botao) return;
+      copiarTexto(templates[botao.dataset.template], `Template ${botao.dataset.template} copiado.`);
+    });
+
+    inputBusca.addEventListener("input", atualizarSugestoes);
+
+    sugestoesBusca.addEventListener("click", (event) => {
+      const botao = event.target.closest("[data-sugestao]");
+      if (!botao) return;
+      inputBusca.value = botao.dataset.sugestao;
+      sugestoesBusca.hidden = true;
+      executarBusca(botao.dataset.sugestao, "termo");
     });
 
     paginaAnterior.addEventListener("click", () => {
@@ -696,18 +1582,30 @@
     botaoLimpar.addEventListener("click", () => {
       buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
       empresasAtuais = [];
+      empresasVisiveis = [];
       inputBusca.value = "";
       marcarAtalhoAtivo("", "");
       botaoExportar.disabled = true;
       botaoAtualizarLote.disabled = true;
+      botaoListaDia.disabled = true;
+      botaoCopiarVisiveis.disabled = true;
       paginacao.hidden = true;
+      solutionStrip.hidden = true;
+      barraComercial.hidden = true;
+      gradeExecutiva.hidden = true;
+      leadCounter.hidden = true;
+      rankingGrid.hidden = true;
+      dailyList.hidden = true;
+      listaVendedor.hidden = true;
+      document.querySelector(".table-wrap").hidden = false;
       resumo.textContent = "Informe um CNAE ou palavra-chave";
       mensagem.textContent = mensagemApiPadrao;
-      tabela.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma busca realizada.</td></tr>';
+      tabela.innerHTML = '<tr><td colspan="13" class="empty-state">Nenhuma busca realizada.</td></tr>';
       inputBusca.focus();
     });
 
     renderizarAtalhos();
+    renderizarTemplates();
     carregarMetricas();
   </script>
 </body>
