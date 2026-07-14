@@ -167,8 +167,7 @@ body::before {
     rgba(10, 11, 9, 0.92);
 }
 
-.metric-card span,
-.insight-label {
+.metric-card span {
   display: block;
   color: var(--accent);
   font-size: 11px;
@@ -725,36 +724,6 @@ button:disabled {
   flex: 0 0 auto;
 }
 
-.insight-bar {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.5fr) minmax(0, 1fr);
-  gap: 16px;
-  align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding: 16px 24px;
-  background:
-    linear-gradient(90deg, rgba(255, 230, 0, 0.12), transparent 54%),
-    rgba(255, 230, 0, 0.04);
-}
-
-.insight-bar[hidden] {
-  display: none;
-}
-
-.insight-bar strong {
-  display: block;
-  margin-top: 4px;
-  font-size: 18px;
-}
-
-.insight-bar p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-  line-height: 1.45;
-}
-
 .solution-strip {
   display: grid;
   grid-template-columns: 0.86fr 1.1fr 0.82fr;
@@ -1226,7 +1195,6 @@ td:first-child {
 
   .command-strip,
   .solution-strip,
-  .insight-bar,
   .commercial-toolbar,
   .base-vortech-panel,
   .executive-grid {
@@ -1260,7 +1228,6 @@ td:first-child {
   .results-header,
   .pagination-bar,
   .solution-strip,
-  .insight-bar,
   .commercial-toolbar,
   .base-vortech-panel,
   .executive-grid,
@@ -1392,8 +1359,7 @@ td:first-child {
 
   .sidebar-head,
   .search-panel,
-  .results-header,
-  .insight-bar {
+  .results-header {
     padding: 14px;
   }
 

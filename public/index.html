@@ -179,14 +179,6 @@
             </div>
           </div>
 
-          <div class="insight-bar" id="insight-bar" hidden>
-            <div>
-              <span class="insight-label">Leitura comercial</span>
-              <strong id="insight-principal">Base aguardando consulta</strong>
-            </div>
-            <p id="insight-detalhe">Use um CNAE para resultado cirurgico ou uma palavra-chave para radar de aderencia.</p>
-          </div>
-
           <div class="solution-strip" id="solution-strip" hidden>
             <div class="solution-card is-hot">
               <span>Prioridade</span>
@@ -318,9 +310,6 @@
     const metricaStatus = $("#metrica-status");
     const metricaTelefone = $("#metrica-telefone");
     const metricaEmail = $("#metrica-email");
-    const insightBar = $("#insight-bar");
-    const insightPrincipal = $("#insight-principal");
-    const insightDetalhe = $("#insight-detalhe");
     const solutionStrip = $("#solution-strip");
     const solucaoPrioridade = $("#solucao-prioridade");
     const solucaoDetalhe = $("#solucao-detalhe");
@@ -713,12 +702,6 @@
     }
 
 
-    function atualizarInsight(titulo, detalhe) {
-      insightBar.hidden = false;
-      insightPrincipal.textContent = titulo;
-      insightDetalhe.textContent = detalhe;
-    }
-
     function atualizarSolucao(empresas, total) {
       const lista = Array.isArray(empresas) ? empresas : [];
       const comTelefone = lista.filter(temTelefone).length;
@@ -1043,12 +1026,6 @@
           ? "Base pronta para consulta e exportacao"
           : "Base online vazia: importe a planilha para liberar resultados";
 
-        if (!dados.total) {
-          atualizarInsight(
-            "Banco online sem CNPJs importados",
-            "O site esta no ar, mas ainda precisa receber a planilha Base_Vortech_Solda.xlsx no PostgreSQL do Render."
-          );
-        }
         atualizarAtalhosComDados();
       } catch (error) {
         metricaTotal.textContent = "Offline";
@@ -1284,22 +1261,6 @@
           ? `CNAE principal exato ${buscaAtual.valor}. Pagina ${formatarNumero(buscaAtual.pagina)} com ${formatarNumero(exibidos)} registro(s); Exportar Excel baixa tudo.`
           : `Filtro aplicado: palavra-chave "${buscaAtual.valor}". Aderencia de solda/revenda ativada.`;
 
-        if (!dados.total && totalBaseOnline === 0) {
-          atualizarInsight(
-            "A busca esta correta, mas a base online esta vazia",
-            "Importe a planilha para o banco do Render. Depois disso este CNAE passa a retornar todos os CNPJs cadastrados."
-          );
-        } else if (buscaAtual.tipo === "cnae") {
-          atualizarInsight(
-            `CNAE ${buscaAtual.valor}: ${formatarNumero(dados.total)} registro(s) exatos`,
-            "A consulta usa somente CNAE principal igual ao codigo informado. Para lista completa, use Exportar Excel."
-          );
-        } else {
-          atualizarInsight(
-            `${formatarNumero(dados.total)} lead(s) com aderencia comercial`,
-            "A busca por termo cruza palavras fortes de solda, ferramentas, gases e revenda para reduzir ruido."
-          );
-        }
         atualizarPaginacao(dados);
         atualizarSolucao(dados.empresas || [], dados.total);
         botaoExportar.disabled = false;
