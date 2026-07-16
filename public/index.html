@@ -127,7 +127,6 @@
               <button class="filter-chip" type="button" data-filtro="email">Com e-mail</button>
               <button class="filter-chip" type="button" data-filtro="sem-email">Sem e-mail</button>
               <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
-              <button class="filter-chip" type="button" data-filtro="quentes">Leads quentes</button>
             </div>
             <div class="toolbar-actions">
               <button id="limpar-filtros" class="ghost-button compact-button" type="button">Limpar filtros</button>
@@ -139,6 +138,11 @@
               <span>Total encontrado</span>
               <strong id="exec-total">0</strong>
               <small id="exec-visivel">0 visiveis</small>
+            </article>
+            <article class="executive-card is-base">
+              <span>Base Vortech</span>
+              <strong id="exec-base-vortech">0</strong>
+              <small id="exec-base-novos">0 novos na amostra</small>
             </article>
             <article class="executive-card">
               <span>Telefone</span>
@@ -202,7 +206,6 @@
               <thead>
                 <tr>
                   <th>CNPJ</th>
-                  <th>Score</th>
                   <th>Empresa</th>
                   <th>Fantasia</th>
                   <th>Tags</th>
@@ -614,18 +617,13 @@
       pontos += Math.min(tags.length * 4, 20);
       pontos = Math.min(pontos, 100);
 
-      let prioridade = "Fraco";
-      if (pontos >= 78) prioridade = "Lead quente";
-      else if (pontos >= 58) prioridade = "Bom lead";
-      else if (pontos >= 38) prioridade = "Medio";
-
       const acao = !temTelefone(empresa) && !temEmail(empresa)
         ? "Enriquecer pela API"
         : temTelefone(empresa)
           ? "Chamar no WhatsApp"
           : "Enviar e-mail curto";
 
-      return { pontos, prioridade, acao, tags };
+      return { pontos, acao, tags };
     }
 
     function perfilPrincipal(tags) {
@@ -660,7 +658,6 @@
         ...empresa,
         chaveLocal: chave,
         score: score.pontos,
-        prioridade: score.prioridade,
         acaoSugerida: score.acao,
         tags: score.tags,
         favorito: Boolean(estadoLocal.favoritos[chave]),
@@ -680,7 +677,6 @@
         `E-mail: ${texto(lead.email)}`,
         `Cidade/UF: ${texto(lead.cidadeComercial)}/${texto(lead.ufComercial)}`,
         `CNAE: ${texto(lead.cnaePrincipal)}`,
-        `Score: ${lead.score} - ${lead.prioridade}`,
         `Acao sugerida: ${lead.acaoSugerida}`,
         `Tags: ${lead.tags.join(", ") || "-"}`,
         `Base Vortech: ${lead.baseVortechMatch ? `Ja consta (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada"}`
@@ -705,13 +701,6 @@
         area.remove();
         mensagem.textContent = feedback;
       }
-    }
-
-    function classeScore(lead) {
-      if (lead.prioridade === "Lead quente") return "score-hot";
-      if (lead.prioridade === "Bom lead") return "score-good";
-      if (lead.prioridade === "Medio") return "score-mid";
-      return "score-low";
     }
 
     function escaparAtributo(valor) {
@@ -919,7 +908,6 @@
         if (filtroAtual === "sem-email") return !temEmail(lead);
         if (filtroAtual === "completo") return temTelefone(lead) && temEmail(lead);
         if (filtroAtual === "sem-contato") return !temTelefone(lead) && !temEmail(lead);
-        if (filtroAtual === "quentes") return lead.prioridade === "Lead quente";
         if (filtroAtual === "favoritos") return lead.favorito;
         return true;
       });
@@ -936,9 +924,10 @@
       const comEmail = empresasAtuais.filter(temEmail).length;
       const semEmail = Math.max(total - comEmail, 0);
       const completos = empresasAtuais.filter((lead) => temTelefone(lead) && temEmail(lead)).length;
-      const quentes = empresasAtuais.filter((lead) => lead.prioridade === "Lead quente").length;
+      const naBaseVortech = empresasAtuais.filter((lead) => lead.baseVortechMatch).length;
+      const novosVortech = Math.max(total - naBaseVortech, 0);
       const enriquecer = empresasAtuais.filter((lead) => !temTelefone(lead) || !temEmail(lead)).length;
-      const qualidade = total ? Math.round(((comTelefone + comEmail + quentes) / (total * 3)) * 100) : 0;
+      const qualidade = total ? Math.round(((comTelefone + comEmail) / (total * 2)) * 100) : 0;
       let estrategia = "Enriquecimento pela API";
 
       if (comTelefone) estrategia = "Ligacao + WhatsApp";
@@ -946,6 +935,8 @@
 
       $("#exec-total").textContent = formatarNumero(total);
       $("#exec-visivel").textContent = `${formatarNumero(visiveis)} visiveis`;
+      $("#exec-base-vortech").textContent = formatarNumero(naBaseVortech);
+      $("#exec-base-novos").textContent = `${formatarNumero(novosVortech)} novos na amostra`;
       $("#exec-telefone").textContent = formatarNumero(comTelefone);
       $("#exec-completo").textContent = `${formatarNumero(completos)} com telefone + e-mail`;
       $("#exec-email").textContent = formatarNumero(comEmail);
@@ -981,7 +972,7 @@
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
-      const colspan = 12;
+      const colspan = 11;
 
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
@@ -1002,10 +993,10 @@
           const badgeBaseVortech = lead.baseVortechMatch
             ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.grupo || lead.baseVortechMatch.tipoCliente || lead.baseVortechMatch.tipo)}</span>`
             : "";
+          const badgesContato = `<div class="score-stack">${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           return `
-            <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""} ${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
-              <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}</td>
-              <td data-label="Score"><div class="score-stack"><span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div></td>
+            <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
+              <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
               <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
@@ -1503,14 +1494,18 @@
       return `vortech-${termo}-${data}`;
     }
 
-    async function baixarExcelFiltrado(empresas, nomeArquivo) {
+    async function baixarExcelFiltrado(nomeArquivo) {
       validarApiUrl();
       const resposta = await fetch(`${API_URL}/empresas/exportar-filtradas`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ empresas, nomeArquivo })
+        body: JSON.stringify({
+          busca: buscaAtual,
+          baseVortech: estadoLocal.baseVortech,
+          nomeArquivo
+        })
       });
 
       if (!resposta.ok) {
@@ -1532,24 +1527,25 @@
       link.click();
       URL.revokeObjectURL(link.href);
       link.remove();
+
+      return {
+        encontrado: Number(resposta.headers.get("X-Total-Encontrado") || 0),
+        exportado: Number(resposta.headers.get("X-Total-Exportado") || 0),
+        removido: Number(resposta.headers.get("X-Total-Removido") || 0)
+      };
     }
 
     async function exportarVisiveis() {
-      const repetidos = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
-      const exportaveis = empresasVisiveis.filter((lead) => !lead.baseVortechMatch);
-
-      if (!exportaveis.length) {
-        mensagem.textContent = repetidos
-          ? "Todos os leads visiveis ja constam na sua base. Nenhuma empresa nova para exportar."
-          : "Nenhum lead visivel para exportar.";
+      if (!buscaAtual.valor) {
+        mensagem.textContent = "Faça uma busca antes de exportar.";
         return;
       }
 
       try {
         botaoExportar.disabled = true;
-        mensagem.textContent = "Gerando planilha Excel...";
-        await baixarExcelFiltrado(exportaveis, nomeArquivoExportacao());
-        mensagem.textContent = `Excel gerado com ${formatarNumero(exportaveis.length)} empresa(s) nova(s). ${formatarNumero(repetidos)} repetida(s) foram removidas.`;
+        mensagem.textContent = "Consultando em lotes de 10 mil e gerando Excel...";
+        const totais = await baixarExcelFiltrado(nomeArquivoExportacao());
+        mensagem.textContent = `Excel gerado com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} repetida(s) foram removidas de ${formatarNumero(totais.encontrado)} encontrada(s).`;
       } catch (error) {
         mensagem.textContent = error.message;
       } finally {

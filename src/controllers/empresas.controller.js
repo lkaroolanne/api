@@ -15,6 +15,8 @@ const CNAES_SOLDAGEM_REVENDA = new Set([
   "4759899"
 ]);
 
+const LOTE_EXPORTACAO_CNAE = 10000;
+
 const TERMOS_FORTES_SOLDA = [
   "solda",
   "soldagem",
@@ -282,6 +284,85 @@ function normalizarTexto(valor) {
 
 function tokensTexto(valor) {
   return normalizarTexto(valor).match(/[a-z0-9]+/g) || [];
+}
+
+function normalizarRazaoBase(valor) {
+  return normalizarTexto(valor)
+    .replace(/&/g, " e ")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\b(ltda|limitada|me|epp|eireli|sa|s a|comercio|comercial|industria|servicos|servico|matriz|filial)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokensRazaoBase(valor) {
+  return normalizarRazaoBase(valor)
+    .split(" ")
+    .filter((token) => token.length >= 4);
+}
+
+function montarIndiceClientesBase(registros = []) {
+  const cnpjs = new Set();
+  const raizes = new Set();
+  const nomes = new Set();
+  const porToken = new Map();
+
+  for (const item of registros) {
+    const cnpj = limparNumerosBase(item.cnpj);
+    const raiz = item.cnpjRaiz || raizCnpjBase(cnpj);
+    const nome = normalizarRazaoBase(item.razaoSocial || item.nome || item.nomeFantasia);
+
+    if (cnpj) cnpjs.add(cnpj);
+    if (raiz) raizes.add(raiz);
+    if (nome) {
+      nomes.add(nome);
+      for (const token of tokensRazaoBase(nome)) {
+        if (!porToken.has(token)) porToken.set(token, []);
+        porToken.get(token).push(nome);
+      }
+    }
+  }
+
+  return { cnpjs, raizes, nomes, porToken };
+}
+
+function similaridadeNomeBase(nomeLead, nomeBase) {
+  const tokensLead = tokensRazaoBase(nomeLead);
+  const tokensCliente = tokensRazaoBase(nomeBase);
+
+  if (!tokensLead.length || !tokensCliente.length) return 0;
+
+  const baseSet = new Set(tokensCliente);
+  const comuns = tokensLead.filter((token) => baseSet.has(token)).length;
+  return comuns / Math.min(tokensLead.length, tokensCliente.length);
+}
+
+function existeNaBaseCliente(empresa, indice) {
+  const cnpj = limparNumerosBase(empresa?.cnpj);
+  const raiz = raizCnpjBase(cnpj);
+  const nomeLead = normalizarRazaoBase(empresa?.razaoSocial || empresa?.nomeFantasia);
+
+  if (cnpj && indice.cnpjs.has(cnpj)) return true;
+  if (raiz && indice.raizes.has(raiz)) return true;
+  if (nomeLead && indice.nomes.has(nomeLead)) return true;
+
+  const candidatos = new Set();
+  for (const token of tokensRazaoBase(nomeLead)) {
+    for (const nome of indice.porToken.get(token) || []) {
+      candidatos.add(nome);
+    }
+  }
+
+  for (const nomeBase of candidatos) {
+    const encaixa = nomeLead.length >= 10 && nomeBase.length >= 10 &&
+      (nomeLead.includes(nomeBase) || nomeBase.includes(nomeLead));
+
+    if (encaixa || similaridadeNomeBase(nomeLead, nomeBase) >= 0.75) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function textoEmpresa(empresa) {
@@ -818,20 +899,83 @@ export async function exportarEmpresasExcel(req, res) {
 
 export async function exportarEmpresasFiltradasExcel(req, res) {
   try {
-    const empresas = Array.isArray(req.body?.empresas) ? req.body.empresas : [];
+    const busca = req.body?.busca || {};
+    const baseVortech = Array.isArray(req.body?.baseVortech) ? req.body.baseVortech : [];
     const nomeArquivo = String(req.body?.nomeArquivo || "vortech-prospects")
       .replace(/[^\w-]+/g, "-")
       .replace(/^-|-$/g, "")
       .toLowerCase() || "vortech-prospects";
+    let empresas = [];
+    let empresasNovas = [];
+    let totalEncontrado = 0;
+    const indiceClientes = montarIndiceClientesBase(baseVortech);
 
-    if (!empresas.length) {
+    if (busca.tipo === "cnae") {
+      const cnae = String(busca.valor || "").replace(/\D/g, "");
+
+      if (!cnae) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: "Informe um CNAE para exportar."
+        });
+      }
+
+      let pagina = 0;
+      let lote = [];
+
+      do {
+        lote = await prisma.receitaProspect.findMany({
+          where: {
+            cnaePrincipal: cnae
+          },
+          orderBy: [
+            { uf: "asc" },
+            { nomeFantasia: "asc" },
+            { cnpj: "asc" }
+          ],
+          skip: pagina * LOTE_EXPORTACAO_CNAE,
+          take: LOTE_EXPORTACAO_CNAE
+        });
+
+        totalEncontrado += lote.length;
+        empresasNovas.push(
+          ...lote.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes))
+        );
+        pagina += 1;
+      } while (lote.length === LOTE_EXPORTACAO_CNAE);
+    } else {
+      const { termo, where } = montarFiltroBusca(busca.valor);
+
+      if (!termo) {
+        return res.status(400).json({
+          sucesso: false,
+          mensagem: "Informe uma busca para exportar."
+        });
+      }
+
+      const encontradas = await prisma.receitaProspect.findMany({
+        where,
+        orderBy: [
+          { uf: "asc" },
+          { nomeFantasia: "asc" },
+          { cnpj: "asc" }
+        ],
+        take: LIMITE_BUSCA_TERMO
+      });
+
+      empresas = filtrarEmpresasAderentes(encontradas, termo);
+      totalEncontrado = empresas.length;
+      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes));
+    }
+
+    if (!empresasNovas.length) {
       return res.status(400).json({
         sucesso: false,
         mensagem: "Nenhuma empresa nova para exportar."
       });
     }
 
-    const arquivo = gerarPlanilhaEmpresas(empresas);
+    const arquivo = gerarPlanilhaEmpresas(empresasNovas);
 
     res.setHeader(
       "Content-Disposition",
@@ -842,6 +986,10 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
+
+    res.setHeader("X-Total-Encontrado", String(totalEncontrado));
+    res.setHeader("X-Total-Exportado", String(empresasNovas.length));
+    res.setHeader("X-Total-Removido", String(totalEncontrado - empresasNovas.length));
 
     return res.send(arquivo);
   } catch (error) {

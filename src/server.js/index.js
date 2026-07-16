@@ -14,8 +14,12 @@ const publicDir = path.resolve(__dirname, "..", "..", "public");
 
 const app = express();
 
-app.use(cors());
-app.use(express.json({ limit: "50mb" }));
+app.use(
+  cors({
+    exposedHeaders: ["X-Total-Encontrado", "X-Total-Exportado", "X-Total-Removido"]
+  })
+);
+app.use(express.json({ limit: "100mb" }));
 app.use(express.static(publicDir));
 
 app.get("/api", (req, res) => {
