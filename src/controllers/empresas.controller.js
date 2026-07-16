@@ -884,9 +884,11 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
       .replace(/[^\w-]+/g, "-")
       .replace(/^-|-$/g, "")
       .toLowerCase() || "vortech-prospects";
+    const lotePagina = Math.max(Number(req.body?.lotePagina || 0), 0);
     let empresas = [];
     let empresasNovas = [];
     let totalEncontrado = 0;
+    let temProximoLote = false;
     const indiceClientes = montarIndiceClientesBase(baseVortech);
 
     if (busca.tipo === "cnae") {
@@ -899,29 +901,23 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
         });
       }
 
-      let pagina = 0;
-      let lote = [];
+      const lote = await prisma.receitaProspect.findMany({
+        where: {
+          cnaePrincipal: cnae
+        },
+        orderBy: [
+          { uf: "asc" },
+          { nomeFantasia: "asc" },
+          { cnpj: "asc" }
+        ],
+        skip: lotePagina * LOTE_EXPORTACAO_CNAE,
+        take: LOTE_EXPORTACAO_CNAE + 1
+      });
 
-      do {
-        lote = await prisma.receitaProspect.findMany({
-          where: {
-            cnaePrincipal: cnae
-          },
-          orderBy: [
-            { uf: "asc" },
-            { nomeFantasia: "asc" },
-            { cnpj: "asc" }
-          ],
-          skip: pagina * LOTE_EXPORTACAO_CNAE,
-          take: LOTE_EXPORTACAO_CNAE
-        });
-
-        totalEncontrado += lote.length;
-        empresasNovas.push(
-          ...lote.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa))
-        );
-        pagina += 1;
-      } while (lote.length === LOTE_EXPORTACAO_CNAE);
+      temProximoLote = lote.length > LOTE_EXPORTACAO_CNAE;
+      empresas = lote.slice(0, LOTE_EXPORTACAO_CNAE);
+      totalEncontrado = empresas.length;
+      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
     } else {
       const { termo, where } = montarFiltroBusca(busca.valor);
 
@@ -947,6 +943,15 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
       empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
     }
 
+    if (!empresasNovas.length && busca.tipo === "cnae") {
+      res.setHeader("X-Total-Encontrado", String(totalEncontrado));
+      res.setHeader("X-Total-Exportado", "0");
+      res.setHeader("X-Total-Removido", String(totalEncontrado));
+      res.setHeader("X-Tem-Proximo-Lote", temProximoLote ? "1" : "0");
+      res.setHeader("X-Lote-Pagina", String(lotePagina));
+      return res.status(204).send();
+    }
+
     if (!empresasNovas.length) {
       return res.status(400).json({
         sucesso: false,
@@ -969,6 +974,8 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     res.setHeader("X-Total-Encontrado", String(totalEncontrado));
     res.setHeader("X-Total-Exportado", String(empresasNovas.length));
     res.setHeader("X-Total-Removido", String(totalEncontrado - empresasNovas.length));
+    res.setHeader("X-Tem-Proximo-Lote", temProximoLote ? "1" : "0");
+    res.setHeader("X-Lote-Pagina", String(lotePagina));
 
     return res.send(arquivo);
   } catch (error) {

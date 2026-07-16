@@ -16,7 +16,13 @@ const app = express();
 
 app.use(
   cors({
-    exposedHeaders: ["X-Total-Encontrado", "X-Total-Exportado", "X-Total-Removido"]
+    exposedHeaders: [
+      "X-Total-Encontrado",
+      "X-Total-Exportado",
+      "X-Total-Removido",
+      "X-Tem-Proximo-Lote",
+      "X-Lote-Pagina"
+    ]
   })
 );
 app.use(express.json({ limit: "100mb" }));

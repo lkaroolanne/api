@@ -1071,6 +1071,10 @@
         const dados = await buscarJson(`${API_URL}/empresas/cnpja/status`);
         cnpjaStatus.textContent = textoStatusCnpja(dados.cnpja);
         cnpjaStatus.hidden = !cnpjaStatus.textContent;
+        if (dados.cnpja && !dados.cnpja.comercial) {
+          cnpjaStatus.textContent = "";
+          cnpjaStatus.hidden = true;
+        }
         return dados.cnpja;
       } catch (error) {
         cnpjaStatus.textContent = "CNPJÁ: nao foi possivel verificar o token agora.";
@@ -1518,7 +1522,7 @@
       return `vortech-${termo}-${data}`;
     }
 
-    async function baixarExcelFiltrado(nomeArquivo) {
+    async function baixarExcelFiltrado(nomeArquivo, lotePagina = 0) {
       validarApiUrl();
       const resposta = await fetch(`${API_URL}/empresas/exportar-filtradas`, {
         method: "POST",
@@ -1528,9 +1532,19 @@
         body: JSON.stringify({
           busca: buscaAtual,
           baseVortech: estadoLocal.baseVortech,
-          nomeArquivo
+          nomeArquivo,
+          lotePagina
         })
       });
+
+      if (resposta.status === 204) {
+        return {
+          encontrado: Number(resposta.headers.get("X-Total-Encontrado") || 0),
+          exportado: 0,
+          removido: Number(resposta.headers.get("X-Total-Removido") || 0),
+          temProximo: resposta.headers.get("X-Tem-Proximo-Lote") === "1"
+        };
+      }
 
       if (!resposta.ok) {
         let dados = null;
@@ -1555,7 +1569,34 @@
       return {
         encontrado: Number(resposta.headers.get("X-Total-Encontrado") || 0),
         exportado: Number(resposta.headers.get("X-Total-Exportado") || 0),
-        removido: Number(resposta.headers.get("X-Total-Removido") || 0)
+        removido: Number(resposta.headers.get("X-Total-Removido") || 0),
+        temProximo: resposta.headers.get("X-Tem-Proximo-Lote") === "1"
+      };
+    }
+
+    async function exportarCnaeEmLotes(nomeBase) {
+      let lotePagina = 0;
+      let totalEncontrado = 0;
+      let totalExportado = 0;
+      let totalRemovido = 0;
+      let temProximo = true;
+
+      while (temProximo) {
+        mensagem.textContent = `Gerando Excel ${lotePagina + 1} em lote de 10 mil...`;
+        const totais = await baixarExcelFiltrado(`${nomeBase}-parte-${lotePagina + 1}`, lotePagina);
+        totalEncontrado += totais.encontrado;
+        totalExportado += totais.exportado;
+        totalRemovido += totais.removido;
+        temProximo = totais.temProximo;
+        lotePagina += 1;
+        await esperar(600);
+      }
+
+      return {
+        encontrado: totalEncontrado,
+        exportado: totalExportado,
+        removido: totalRemovido,
+        arquivos: lotePagina
       };
     }
 
@@ -1567,9 +1608,12 @@
 
       try {
         botaoExportar.disabled = true;
-        mensagem.textContent = "Consultando em lotes de 10 mil e gerando Excel...";
-        const totais = await baixarExcelFiltrado(nomeArquivoExportacao());
-        mensagem.textContent = `Excel gerado com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} repetida(s) foram removidas de ${formatarNumero(totais.encontrado)} encontrada(s).`;
+        const nomeBase = nomeArquivoExportacao();
+        const totais = buscaAtual.tipo === "cnae"
+          ? await exportarCnaeEmLotes(nomeBase)
+          : await baixarExcelFiltrado(nomeBase);
+        const arquivos = totais.arquivos ? ` em ${totais.arquivos} arquivo(s)` : "";
+        mensagem.textContent = `Excel gerado${arquivos} com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} removida(s) de ${formatarNumero(totais.encontrado)} encontrada(s).`;
       } catch (error) {
         mensagem.textContent = error.message;
       } finally {
