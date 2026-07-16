@@ -954,11 +954,6 @@ td[data-coluna="uf"] {
   width: 46px;
 }
 
-th[data-coluna="cidade"],
-td[data-coluna="cidade"] {
-  width: 92px;
-}
-
 th[data-coluna="telefone"],
 td[data-coluna="telefone"] {
   width: 108px;

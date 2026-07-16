@@ -508,7 +508,9 @@ function montarFiltroBusca(termo) {
     termo: termoLimpo,
     where: {
       OR: [
+        { razaoSocial: { contains: termoLimpo, mode: "insensitive" } },
         { nomeFantasia: { contains: termoLimpo, mode: "insensitive" } },
+        { cnaeDescricao: { contains: termoLimpo, mode: "insensitive" } },
         { segmento: { contains: termoLimpo, mode: "insensitive" } },
         { cnaeSecundarios: { contains: termoLimpo, mode: "insensitive" } },
         { logradouro: { contains: termoLimpo, mode: "insensitive" } },
