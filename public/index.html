@@ -464,12 +464,11 @@
       const cnpjs = new Map();
       const cnpjRaizes = new Map();
       const nomes = new Map();
-      const porToken = new Map();
       const itens = [];
 
       base.forEach((item) => {
         const cnpj = limparNumeros(item.cnpj);
-        const cnpjRaiz = item.cnpjRaiz || raizCnpj(cnpj);
+        const cnpjRaiz = raizCnpj(item.cnpjRaiz) || raizCnpj(cnpj);
         const nome = normalizarRazao(item.razaoSocial || item.nome || item.nomeFantasia);
 
         if (!cnpj && !nome) return;
@@ -487,25 +486,9 @@
         if (cnpj) cnpjs.set(cnpj, registro);
         if (cnpjRaiz && !cnpjRaizes.has(cnpjRaiz)) cnpjRaizes.set(cnpjRaiz, registro);
         if (nome) nomes.set(nome, registro);
-
-        tokensRazao(nome).forEach((token) => {
-          if (!porToken.has(token)) porToken.set(token, []);
-          porToken.get(token).push(registro);
-        });
       });
 
-      return { cnpjs, cnpjRaizes, nomes, porToken, itens };
-    }
-
-    function similaridadeRazao(nomeLead, registro) {
-      const tokensLead = tokensRazao(nomeLead);
-      const tokensBase = tokensRazao(registro.nome);
-
-      if (!tokensLead.length || !tokensBase.length) return 0;
-
-      const baseSet = new Set(tokensBase);
-      const comuns = tokensLead.filter((token) => baseSet.has(token)).length;
-      return comuns / Math.min(tokensLead.length, tokensBase.length);
+      return { cnpjs, cnpjRaizes, nomes, itens };
     }
 
     function verificarBaseVortech(empresa) {
@@ -526,24 +509,6 @@
       if (nomeLead && indiceBaseVortech.nomes.has(nomeLead)) {
         const item = indiceBaseVortech.nomes.get(nomeLead);
         return { tipo: "Razao social", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
-      }
-
-      const candidatos = new Map();
-      tokensRazao(nomeLead).forEach((token) => {
-        (indiceBaseVortech.porToken.get(token) || []).forEach((item) => {
-          candidatos.set(item.nome, item);
-        });
-      });
-
-      for (const item of candidatos.values()) {
-        const nomeBase = item.nome;
-        const encaixa = nomeLead.length >= 10 && nomeBase.length >= 10 &&
-          (nomeLead.includes(nomeBase) || nomeBase.includes(nomeLead));
-        const similar = similaridadeRazao(nomeLead, item) >= 0.75;
-
-        if (encaixa || similar) {
-          return { tipo: "Nome parecido", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
-        }
       }
 
       return null;

@@ -305,36 +305,20 @@ function montarIndiceClientesBase(registros = []) {
   const cnpjs = new Set();
   const raizes = new Set();
   const nomes = new Set();
-  const porToken = new Map();
 
   for (const item of registros) {
     const cnpj = limparNumerosBase(item.cnpj);
-    const raiz = item.cnpjRaiz || raizCnpjBase(cnpj);
+    const raiz = raizCnpjBase(item.cnpjRaiz) || raizCnpjBase(cnpj);
     const nome = normalizarRazaoBase(item.razaoSocial || item.nome || item.nomeFantasia);
 
     if (cnpj) cnpjs.add(cnpj);
     if (raiz) raizes.add(raiz);
     if (nome) {
       nomes.add(nome);
-      for (const token of tokensRazaoBase(nome)) {
-        if (!porToken.has(token)) porToken.set(token, []);
-        porToken.get(token).push(nome);
-      }
     }
   }
 
-  return { cnpjs, raizes, nomes, porToken };
-}
-
-function similaridadeNomeBase(nomeLead, nomeBase) {
-  const tokensLead = tokensRazaoBase(nomeLead);
-  const tokensCliente = tokensRazaoBase(nomeBase);
-
-  if (!tokensLead.length || !tokensCliente.length) return 0;
-
-  const baseSet = new Set(tokensCliente);
-  const comuns = tokensLead.filter((token) => baseSet.has(token)).length;
-  return comuns / Math.min(tokensLead.length, tokensCliente.length);
+  return { cnpjs, raizes, nomes };
 }
 
 function existeNaBaseCliente(empresa, indice) {
@@ -345,22 +329,6 @@ function existeNaBaseCliente(empresa, indice) {
   if (cnpj && indice.cnpjs.has(cnpj)) return true;
   if (raiz && indice.raizes.has(raiz)) return true;
   if (nomeLead && indice.nomes.has(nomeLead)) return true;
-
-  const candidatos = new Set();
-  for (const token of tokensRazaoBase(nomeLead)) {
-    for (const nome of indice.porToken.get(token) || []) {
-      candidatos.add(nome);
-    }
-  }
-
-  for (const nomeBase of candidatos) {
-    const encaixa = nomeLead.length >= 10 && nomeBase.length >= 10 &&
-      (nomeLead.includes(nomeBase) || nomeBase.includes(nomeLead));
-
-    if (encaixa || similaridadeNomeBase(nomeLead, nomeBase) >= 0.75) {
-      return true;
-    }
-  }
 
   return false;
 }
