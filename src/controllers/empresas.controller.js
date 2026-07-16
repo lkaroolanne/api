@@ -470,7 +470,7 @@ function contemTokenOuFrase(texto, termo) {
     return tokensBase.has(tokensTermo[0]);
   }
 
-  return tokensTermo.every((token) => tokensBase.has(token)) ||
+  return tokensTermo.some((token) => tokensBase.has(token)) ||
     textoNormalizado.includes(` ${tokensTermo.join(" ")} `);
 }
 
@@ -543,19 +543,26 @@ function montarFiltroBusca(termo) {
     };
   }
 
+  const termosBusca = tokensTexto(termoLimpo)
+    .filter((token) => token.length >= 3)
+    .slice(0, 8);
+  const termos = termosBusca.length ? termosBusca : [termoLimpo];
+  const camposTexto = [
+    "razaoSocial",
+    "nomeFantasia",
+    "segmento",
+    "cnaeSecundarios",
+    "logradouro",
+    "bairro",
+    "email"
+  ];
+
   return {
     termo: termoLimpo,
     where: {
-      OR: [
-        { razaoSocial: { contains: termoLimpo, mode: "insensitive" } },
-        { nomeFantasia: { contains: termoLimpo, mode: "insensitive" } },
-        { cnaeDescricao: { contains: termoLimpo, mode: "insensitive" } },
-        { segmento: { contains: termoLimpo, mode: "insensitive" } },
-        { cnaeSecundarios: { contains: termoLimpo, mode: "insensitive" } },
-        { logradouro: { contains: termoLimpo, mode: "insensitive" } },
-        { bairro: { contains: termoLimpo, mode: "insensitive" } },
-        { email: { contains: termoLimpo, mode: "insensitive" } }
-      ]
+      OR: termos.flatMap((item) => camposTexto.map((campo) => ({
+        [campo]: { contains: item, mode: "insensitive" }
+      })))
     }
   };
 }

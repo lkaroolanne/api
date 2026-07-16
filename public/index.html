@@ -221,7 +221,7 @@
     const INTERVALO_CNPJA_COMERCIAL_MS = 0;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
     const LIMITE_CNAE_TELA = 10000;
-    const LOTE_RENDERIZACAO = 180;
+    const LOTE_RENDERIZACAO = 80;
     const MINIMO_ATALHO_TERMO = 1;
     const MINIMO_ATALHO_CNAE = 1000;
     const atalhos = [
@@ -240,21 +240,12 @@
         titulo: "Palavras-chave",
         tipo: "termo",
         itens: [
-          "Ferragens",
-          "Ferramentas",
-          "Solda",
-          "Soldagem",
-          "Maquinas",
-          "Inversora",
-          "Eletrodos",
-          "Gases",
-          "Cilindros",
-          "Oxigenio",
-          "Acetileno",
-          "Argonio",
-          "Reguladores",
-          "Macaricos",
-          "Abrasivos"
+          { valor: "solda soldagem eletrodo", nome: "Solda e Eletrodos" },
+          { valor: "maquina inversora solda", nome: "Maquinas de Solda" },
+          { valor: "ferragens ferramentas", nome: "Ferragens e Ferramentas" },
+          { valor: "gases cilindros oxigenio argonio acetileno", nome: "Gases e Cilindros" },
+          { valor: "regulador valvula macarico", nome: "Reguladores e Macaricos" },
+          { valor: "abrasivos corte plasma oxicorte", nome: "Corte e Abrasivos" }
         ]
       }
     ];
@@ -870,11 +861,11 @@
             ${grupo.itens.map((item) => {
               const valor = typeof item === "string" ? item : item.valor;
               const nome = typeof item === "string" ? item : item.nome;
-              const codigo = typeof item === "string" ? "" : `<strong>${item.valor}</strong>`;
+              const codigo = grupo.tipo === "cnae" && typeof item !== "string" ? `<strong>${item.valor}</strong>` : "";
               const total = "";
 
               return `
-                <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparHtml(valor)}">
+                <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparAtributo(valor)}">
                   ${codigo}
                   <span>${escaparHtml(nome)}</span>
                   ${total}
