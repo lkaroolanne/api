@@ -342,6 +342,7 @@
     let atalhosVisiveis = atalhos;
     let filtroAtual = "todos";
     const cacheConsultas = new Map();
+    let atalhoClicadoAtual = null;
     let estadoLocal = carregarEstadoLocal();
     let indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
     let colunasTabela = {
@@ -1153,12 +1154,14 @@
       }
     }
 
-    function marcarAtalhoAtivo(tipo, valor) {
+    function marcarAtalhoAtivo(tipo, valor, botaoClicado = null) {
       const valorNormalizado = String(valor || "").trim().toLowerCase();
 
       listaAtalhos.querySelectorAll("[data-valor]").forEach((botao) => {
-        const ativo = botao.dataset.tipo === tipo &&
-          String(botao.dataset.valor || "").trim().toLowerCase() === valorNormalizado;
+        const ativo = botaoClicado
+          ? botao === botaoClicado
+          : botao.dataset.tipo === tipo &&
+            String(botao.dataset.valor || "").trim().toLowerCase() === valorNormalizado;
 
         botao.classList.toggle("is-active", ativo);
       });
@@ -1330,7 +1333,7 @@
         : `${API_URL}/empresas/busca?termo=${encodeURIComponent(termo)}`;
 
       definirCarregando(true);
-      marcarAtalhoAtivo(buscaPorCnae ? "cnae" : "termo", buscaPorCnae ? apenasNumeros : termo);
+      marcarAtalhoAtivo(buscaPorCnae ? "cnae" : "termo", buscaPorCnae ? apenasNumeros : termo, atalhoClicadoAtual);
       botaoExportar.disabled = true;
       botaoAtualizarLote.disabled = true;
       resumo.textContent = `Buscando ${buscaPorCnae ? "CNAE" : "termo"} ${buscaPorCnae ? apenasNumeros : termo}`;
@@ -1383,6 +1386,7 @@
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      atalhoClicadoAtual = null;
       executarBusca(inputBusca.value);
     });
 
@@ -1394,6 +1398,8 @@
       }
 
       inputBusca.value = botao.dataset.valor;
+      atalhoClicadoAtual = botao;
+      marcarAtalhoAtivo(botao.dataset.tipo, botao.dataset.valor, botao);
       executarBusca(botao.dataset.valor, botao.dataset.tipo);
     });
 
@@ -1722,6 +1728,7 @@
       buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
       empresasAtuais = [];
       empresasVisiveis = [];
+      atalhoClicadoAtual = null;
       inputBusca.value = "";
       marcarAtalhoAtivo("", "");
       botaoExportar.disabled = true;
