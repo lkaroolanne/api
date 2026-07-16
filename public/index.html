@@ -75,18 +75,12 @@
           <div class="results-header">
             <div>
               <p class="eyebrow">Resultado</p>
-              <h2 id="resumo">Informe um CNAE ou palavra-chave</h2>
+              <h2 id="resumo"></h2>
             </div>
 
             <div class="actions-row">
-              <button id="lista-dia" class="secondary-button" type="button" disabled>
-                Montar lista do dia
-              </button>
-              <button id="copiar-visiveis" class="ghost-button" type="button" disabled>
-                Copiar visiveis
-              </button>
-              <button id="atualizar-lote" class="ghost-button" type="button" disabled>
-                Enriquecer API
+              <button id="atualizar-lote" class="secondary-button" type="button" disabled>
+                CNPJÁ
               </button>
               <button id="base-vortech-toggle" class="ghost-button" type="button">
                 Base Vortech
@@ -101,20 +95,26 @@
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
+          <p id="cnpja-status" class="cnpja-status">
+            CNPJÁ: verificando token...
+          </p>
 
           <div class="base-vortech-panel" id="base-vortech-panel" hidden>
             <div>
               <p class="eyebrow">Base Vortech</p>
               <strong id="base-vortech-status">Nenhuma base carregada</strong>
-              <small>A base oficial carrega automaticamente do backend. Cole linhas aqui apenas para complementar.</small>
+              <small>Suba sua planilha semanal de clientes. A exportacao remove automaticamente empresas ja existentes na sua base.</small>
             </div>
-            <textarea
-              id="base-vortech-texto"
-              rows="3"
-              placeholder="Cole aqui: CNPJ; Razao Social&#10;12.345.678/0001-90; Empresa Exemplo LTDA"
-            ></textarea>
+            <div class="base-vortech-inputs">
+              <input id="base-vortech-arquivo" type="file" accept=".xlsx,.xls,.csv">
+              <textarea
+                id="base-vortech-texto"
+                rows="3"
+                placeholder="Opcional: cole aqui CNPJ; Razao Social; Grupo"
+              ></textarea>
+            </div>
             <div class="base-vortech-actions">
-              <button id="base-vortech-importar" class="secondary-button compact-button" type="button">Importar base</button>
+              <button id="base-vortech-importar" class="secondary-button compact-button" type="button">Importar planilha</button>
               <button id="base-vortech-limpar" class="ghost-button compact-button" type="button">Limpar base</button>
               <button id="base-vortech-fechar" class="ghost-button compact-button" type="button">Fechar</button>
             </div>
@@ -255,9 +255,7 @@
           { valor: "4672900", nome: "Atacado de Ferragens e Ferramentas" },
           { valor: "4684299", nome: "Distribuidores de Gases e Cilindros" },
           { valor: "4663000", nome: "Revenda de Maquinas e Inversoras" },
-          { valor: "4669999", nome: "Revenda de Equipamentos Industriais" },
-          { valor: "4689399", nome: "Distribuicao Tecnica para Solda" },
-          { valor: "4759899", nome: "Revenda Tecnica de Suprimentos" }
+          { valor: "4669999", nome: "Revenda de Equipamentos Industriais" }
         ]
       },
       {
@@ -302,10 +300,9 @@
     const botaoExportar = $("#exportar");
     const botaoAtualizarLote = $("#atualizar-lote");
     const botaoBaseVortechToggle = $("#base-vortech-toggle");
-    const botaoListaDia = $("#lista-dia");
-    const botaoCopiarVisiveis = $("#copiar-visiveis");
     const resumo = $("#resumo");
     const mensagem = $("#mensagem");
+    const cnpjaStatus = $("#cnpja-status");
     const tabela = $("#tabela-resultados");
     const tabelaContainer = document.querySelector(".table-wrap");
     const loadMoreBar = $("#load-more-bar");
@@ -333,6 +330,7 @@
     const gradeExecutiva = $("#executive-grid");
     const baseVortechPanel = $("#base-vortech-panel");
     const baseVortechStatus = $("#base-vortech-status");
+    const baseVortechArquivo = $("#base-vortech-arquivo");
     const baseVortechTexto = $("#base-vortech-texto");
     const baseVortechImportar = $("#base-vortech-importar");
     const baseVortechLimpar = $("#base-vortech-limpar");
@@ -392,7 +390,11 @@
     }
 
     function salvarLocal(chave, valor) {
-      window.localStorage.setItem(chave, JSON.stringify(valor));
+      try {
+        window.localStorage.setItem(chave, JSON.stringify(valor));
+      } catch (error) {
+        console.warn("Nao foi possivel salvar dados locais:", error.message);
+      }
     }
 
     function validarApiUrl() {
@@ -467,7 +469,9 @@
         const registro = {
           cnpj,
           nome,
-          razaoSocial: item.razaoSocial || item.nome || item.nomeFantasia || ""
+          razaoSocial: item.razaoSocial || item.nome || item.nomeFantasia || "",
+          tipoCliente: item.tipoCliente || item.tipo || "",
+          grupo: item.grupo || item.grupoCliente || item.tipoCliente || item.tipo || ""
         };
 
         itens.push(registro);
@@ -500,12 +504,12 @@
 
       if (cnpj && indiceBaseVortech.cnpjs.has(cnpj)) {
         const item = indiceBaseVortech.cnpjs.get(cnpj);
-        return { tipo: "CNPJ", razaoSocial: item.razaoSocial };
+        return { tipo: "CNPJ", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
       }
 
       if (nomeLead && indiceBaseVortech.nomes.has(nomeLead)) {
         const item = indiceBaseVortech.nomes.get(nomeLead);
-        return { tipo: "Razao social", razaoSocial: item.razaoSocial };
+        return { tipo: "Razao social", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
       }
 
       const candidatos = new Map();
@@ -522,7 +526,7 @@
         const similar = similaridadeRazao(nomeLead, item) >= 0.75;
 
         if (encaixa || similar) {
-          return { tipo: "Nome parecido", razaoSocial: item.razaoSocial };
+          return { tipo: "Nome parecido", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
         }
       }
 
@@ -784,6 +788,35 @@
       return dados;
     }
 
+    function lerArquivoBase64(arquivo) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          const base64 = String(reader.result || "").split(",")[1] || "";
+          resolve(base64);
+        };
+        reader.onerror = () => reject(new Error("Nao foi possivel ler a planilha selecionada."));
+        reader.readAsDataURL(arquivo);
+      });
+    }
+
+    async function importarBaseVortechArquivo(arquivo) {
+      validarApiUrl();
+      const conteudoBase64 = await lerArquivoBase64(arquivo);
+
+      return buscarJson(`${API_URL}/empresas/base-vortech/importar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          nomeArquivo: arquivo.name,
+          conteudoBase64
+        })
+      });
+    }
+
     function escaparHtml(valor) {
       return texto(valor)
         .replaceAll("&", "&amp;")
@@ -941,9 +974,6 @@
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
       gradeExecutiva.hidden = !empresasAtuais.length;
-      botaoListaDia.disabled = !empresasAtuais.length;
-      botaoCopiarVisiveis.disabled = !empresasVisiveis.length;
-
       if (!empresasAtuais.length) {
         tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>`;
         loadMoreBar.hidden = true;
@@ -958,7 +988,7 @@
           const index = indicePorChave.get(lead.chaveLocal) ?? 0;
           const contatoCompleto = temTelefone(lead) && temEmail(lead);
           const badgeBaseVortech = lead.baseVortechMatch
-            ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.tipo)}</span>`
+            ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.grupo || lead.baseVortechMatch.tipoCliente || lead.baseVortechMatch.tipo)}</span>`
             : "";
           return `
             <tr class="${lead.prioridade === "Lead quente" ? "lead-hot-row" : ""} ${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
@@ -1012,6 +1042,36 @@
         metricaEmail.textContent = "-";
         metricaStatus.textContent = "Nao foi possivel verificar a base";
       }
+    }
+
+    function textoStatusCnpja(cnpja) {
+      if (!cnpja?.configurado) {
+        return "CNPJÁ: token nao configurado. Configure CNPJA_API_KEY no Render para usar a API paga.";
+      }
+
+      if (cnpja.saldoRestante) {
+        return `CNPJÁ: token ativo. Restam ${cnpja.saldoRestante}${cnpja.limite ? ` de ${cnpja.limite}` : ""}.`;
+      }
+
+      return "CNPJÁ: token ativo. A API ainda nao informou saldo de tokens.";
+    }
+
+    async function carregarStatusCnpja() {
+      try {
+        validarApiUrl();
+        const dados = await buscarJson(`${API_URL}/empresas/cnpja/status`);
+        cnpjaStatus.textContent = textoStatusCnpja(dados.cnpja);
+      } catch (error) {
+        cnpjaStatus.textContent = "CNPJÁ: nao foi possivel verificar o token agora.";
+      }
+    }
+
+    function exportarPlanilhaAtualizada() {
+      if (!buscaAtual.valor) return;
+
+      window.location.href = buscaAtual.tipo === "cnae"
+        ? `${API_URL}/empresas/cnae/${encodeURIComponent(buscaAtual.valor)}/exportar`
+        : `${API_URL}/empresas/busca/exportar?termo=${encodeURIComponent(buscaAtual.valor)}`;
     }
 
     function aplicarDadosAtualizados(index, empresaAtualizada) {
@@ -1078,6 +1138,7 @@
           botao.title = "Atualizado pela API";
         }
         mensagem.textContent = "Lead enriquecido pela API.";
+        carregarStatusCnpja();
 
         return true;
       } catch (error) {
@@ -1146,8 +1207,14 @@
 
     function atualizarStatusBaseVortech() {
       const total = estadoLocal.baseVortech.length;
+      const grupos = new Set(
+        estadoLocal.baseVortech
+          .map((item) => item.grupo || item.tipoCliente || item.tipo)
+          .filter(Boolean)
+      ).size;
+
       baseVortechStatus.textContent = total
-        ? `${formatarNumero(total)} registro(s) carregados para cruzamento`
+        ? `${formatarNumero(total)} cliente(s) carregados${grupos ? ` em ${formatarNumero(grupos)} grupo(s)` : ""}`
         : "Nenhuma base carregada";
     }
 
@@ -1199,13 +1266,19 @@
           const partes = linha.split(/\t|;|,/);
           const razaoSocial = escolherRazaoSocial(partes, linha, cnpj);
           const nomeNormalizado = normalizarRazao(razaoSocial);
+          const grupo = partes
+            .map((parte) => String(parte || "").trim())
+            .filter((parte) => parte && parte !== cnpj && parte !== razaoSocial)
+            .find((parte) => /[a-z]/.test(normalizarTexto(parte))) || "";
 
           if (!cnpjLimpo && !nomeNormalizado) return;
 
           const chave = cnpjLimpo || nomeNormalizado;
           registros.set(chave, {
             cnpj: cnpjLimpo,
-            razaoSocial: razaoSocial || ""
+            razaoSocial: razaoSocial || "",
+            grupo,
+            tipoCliente: grupo
           });
         });
 
@@ -1386,22 +1459,37 @@
       baseVortechPanel.hidden = true;
     });
 
-    baseVortechImportar.addEventListener("click", () => {
-      const registros = importarBaseVortechTexto(baseVortechTexto.value);
+    baseVortechImportar.addEventListener("click", async () => {
+      try {
+        baseVortechImportar.disabled = true;
+        mensagem.textContent = "Analisando planilha da sua base...";
 
-      if (!registros.length) {
-        mensagem.textContent = "Cole pelo menos uma linha com CNPJ ou razao social da base Vortech.";
-        return;
+        const arquivo = baseVortechArquivo.files?.[0];
+        const registros = arquivo
+          ? (await importarBaseVortechArquivo(arquivo)).registros
+          : importarBaseVortechTexto(baseVortechTexto.value);
+
+        if (!registros.length) {
+          mensagem.textContent = "Selecione uma planilha ou cole pelo menos uma linha com CNPJ, razao social ou grupo.";
+          return;
+        }
+
+        estadoLocal.baseVortech = registros;
+        salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
+        indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
+        empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+        aplicarFiltrosERenderizar();
+        atualizarStatusBaseVortech();
+        baseVortechTexto.value = "";
+        baseVortechArquivo.value = "";
+
+        const repetidos = empresasAtuais.filter((lead) => lead.baseVortechMatch).length;
+        mensagem.textContent = `Base carregada com ${formatarNumero(registros.length)} cliente(s). ${formatarNumero(repetidos)} repetido(s) encontrados na busca atual e serao removidos da exportacao.`;
+      } catch (error) {
+        mensagem.textContent = error.message;
+      } finally {
+        baseVortechImportar.disabled = false;
       }
-
-      estadoLocal.baseVortech = registros;
-      salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
-      indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
-      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
-      aplicarFiltrosERenderizar();
-      atualizarStatusBaseVortech();
-      baseVortechTexto.value = "";
-      mensagem.textContent = `Base Vortech carregada com ${formatarNumero(registros.length)} registro(s). Leads repetidos foram sinalizados.`;
     });
 
     baseVortechLimpar.addEventListener("click", () => {
@@ -1420,9 +1508,16 @@
       let processados = 0;
       let proximoIndex = 0;
 
+      if (!total) {
+        mensagem.textContent = "Faça uma busca antes de exportar pela CNPJÁ.";
+        return;
+      }
+
       botaoAtualizarLote.disabled = true;
       botaoExportar.disabled = true;
-      mensagem.textContent = `Atualizando dados pela API do CNPJ: 0 de ${total}.`;
+      botaoAtualizarLote.textContent = "CNPJÁ...";
+      mensagem.textContent = `CNPJÁ atualizando dados: 0 de ${total}.`;
+      cnpjaStatus.textContent = "CNPJÁ: consultando saldo durante a atualizacao...";
 
       async function trabalhador() {
         while (proximoIndex < total) {
@@ -1432,7 +1527,7 @@
           const ok = await atualizarCnpj(index);
           atualizados += ok ? 1 : 0;
           processados += 1;
-          mensagem.textContent = `Atualizando tudo: ${processados} de ${total}. Atualizados: ${atualizados}.`;
+          mensagem.textContent = `CNPJÁ atualizando: ${processados} de ${total}. Atualizados: ${atualizados}.`;
 
           await esperar(15);
         }
@@ -1445,8 +1540,11 @@
 
       await Promise.all(trabalhadores);
 
-      mensagem.textContent = `Atualizacao finalizada. ${atualizados} de ${total} CNPJ(s) atualizados pela API.`;
+      mensagem.textContent = `CNPJÁ finalizou ${atualizados} de ${total} CNPJ(s). Baixando planilha atualizada...`;
+      await carregarStatusCnpja();
+      exportarVisiveis();
       botaoAtualizarLote.disabled = false;
+      botaoAtualizarLote.textContent = "CNPJÁ";
       botaoExportar.disabled = !buscaAtual.valor;
     });
 
@@ -1455,11 +1553,21 @@
     }
 
     function exportarVisiveis() {
+      const repetidos = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
+      const exportaveis = empresasVisiveis.filter((lead) => !lead.baseVortechMatch);
+
+      if (!exportaveis.length) {
+        mensagem.textContent = repetidos
+          ? "Todos os leads visiveis ja constam na sua base. Nenhuma empresa nova para exportar."
+          : "Nenhum lead visivel para exportar.";
+        return;
+      }
+
       const cabecalho = [
         "CNPJ", "Razao social", "Nome fantasia", "Telefone", "Email", "Cidade", "UF", "CNAE",
-        "Score", "Prioridade", "Acao sugerida", "Tags", "Base Vortech", "Mensagem WhatsApp", "Mensagem E-mail"
+        "Score", "Prioridade", "Acao sugerida", "Tags", "Status Base", "Grupo Base", "Mensagem WhatsApp", "Mensagem E-mail"
       ];
-      const linhas = empresasVisiveis.map((lead) => [
+      const linhas = exportaveis.map((lead) => [
         formatarCnpj(lead.cnpj),
         lead.razaoSocial,
         lead.nomeFantasia,
@@ -1472,7 +1580,8 @@
         lead.prioridade,
         lead.acaoSugerida,
         lead.tags.join(", "),
-        lead.baseVortechMatch ? `Ja na base (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada",
+        "Novo cliente",
+        "",
         mensagemWhatsapp(lead),
         mensagemEmail(lead)
       ].map(csvValor).join(";"));
@@ -1487,7 +1596,7 @@
       document.body.appendChild(link);
       link.click();
       link.remove();
-      mensagem.textContent = "Exportacao dos resultados filtrados gerada.";
+      mensagem.textContent = `Planilha gerada com ${formatarNumero(exportaveis.length)} empresa(s) nova(s). ${formatarNumero(repetidos)} repetida(s) foram removidas.`;
     }
 
     botaoExportar.addEventListener("click", () => {
@@ -1500,34 +1609,6 @@
       window.location.href = buscaAtual.tipo === "cnae"
         ? `${API_URL}/empresas/cnae/${encodeURIComponent(buscaAtual.valor)}/exportar`
         : `${API_URL}/empresas/busca/exportar?termo=${encodeURIComponent(buscaAtual.valor)}`;
-    });
-
-    botaoCopiarVisiveis.addEventListener("click", () => {
-      copiarTexto(empresasVisiveis.map(textoContato).join("\n\n---\n\n"), "Todos os contatos visiveis foram copiados.");
-    });
-
-    botaoListaDia.addEventListener("click", () => {
-      const lista = [...empresasAtuais]
-        .sort((a, b) => {
-          const prioridadeA = (a.prioridade === "Lead quente" ? 1000 : 0) + (temTelefone(a) ? 100 : 0) + (temTelefone(a) && temEmail(a) ? 50 : 0) + a.score;
-          const prioridadeB = (b.prioridade === "Lead quente" ? 1000 : 0) + (temTelefone(b) ? 100 : 0) + (temTelefone(b) && temEmail(b) ? 50 : 0) + b.score;
-          return prioridadeB - prioridadeA;
-        })
-        .slice(0, 20);
-
-      dailyList.hidden = false;
-      dailyListContent.innerHTML = lista.map((lead) => {
-        const index = empresasAtuais.findIndex((item) => item.chaveLocal === lead.chaveLocal);
-        return `
-          <article class="seller-card ${lead.prioridade === "Lead quente" ? "is-hot" : ""}">
-            <div><strong>${escaparHtml(lead.nomeFantasia || lead.razaoSocial)}</strong><span>${escaparHtml(lead.cidadeComercial)}/${escaparHtml(lead.ufComercial)}</span></div>
-            <span class="score-pill ${classeScore(lead)}">${lead.score} ${escaparHtml(lead.prioridade)}</span>
-            <p>${escaparHtml(lead.telefone1 || lead.telefone)}<br>${escaparHtml(lead.email)}</p>
-            ${renderizarAcoesLead(lead, index)}
-          </article>
-        `;
-      }).join("");
-      mensagem.textContent = "Lista do dia montada com os melhores leads da busca.";
     });
 
     fecharListaDia.addEventListener("click", () => {
@@ -1564,8 +1645,6 @@
       marcarAtalhoAtivo("", "");
       botaoExportar.disabled = true;
       botaoAtualizarLote.disabled = true;
-      botaoListaDia.disabled = true;
-      botaoCopiarVisiveis.disabled = true;
       paginacao.hidden = true;
       solutionStrip.hidden = true;
       barraComercial.hidden = true;
@@ -1573,7 +1652,7 @@
       dailyList.hidden = true;
       loadMoreBar.hidden = true;
       tabelaContainer.hidden = false;
-      resumo.textContent = "Informe um CNAE ou palavra-chave";
+      resumo.textContent = "";
       mensagem.textContent = mensagemApiPadrao;
       tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nenhuma busca realizada.</td></tr>';
       inputBusca.focus();
@@ -1583,6 +1662,7 @@
     atualizarStatusBaseVortech();
     carregarBaseVortechAutomatica();
     carregarMetricas();
+    carregarStatusCnpja();
   </script>
 </body>
 </html>

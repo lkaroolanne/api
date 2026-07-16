@@ -1,5 +1,5 @@
 import { prisma } from "../prisma/client.js";
-import { buscarCnpjBrasilApi } from "../services/cnpj.service.js";
+import { buscarCnpjBrasilApi, obterStatusCnpja } from "../services/cnpj.service.js";
 import { gerarPlanilhaEmpresas } from "../services/exportarExcel.service.js";
 import fs from "node:fs";
 import path from "node:path";
@@ -171,6 +171,14 @@ function lerBaseVortechArquivo() {
   const workbook = xlsx.readFile(ARQUIVO_BASE_VORTECH, { cellDates: false });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const linhas = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+  cacheBaseVortech = {
+    mtimeMs: stat.mtimeMs,
+    registros: mapearLinhasBaseVortech(linhas)
+  };
+
+  return cacheBaseVortech.registros;
+
   const registros = new Map();
 
   for (const linha of linhas) {
@@ -200,6 +208,54 @@ function lerBaseVortechArquivo() {
   };
 
   return cacheBaseVortech.registros;
+}
+
+function mapearLinhasBaseVortech(linhas) {
+  const registros = new Map();
+
+  for (const linha of linhas) {
+    const cnpj = limparNumerosBase(escolherCampoBase(linha, ["CNPJ", "cnpj", "CPF/CNPJ", "Documento"]));
+    const razaoSocial = escolherCampoBase(linha, [
+      "RAZAO_SOCIAL",
+      "RAZAO SOCIAL",
+      "RAZÃƒO SOCIAL",
+      "Razao Social",
+      "Razão Social",
+      "Nome",
+      "Cliente",
+      "Nome Cliente",
+      "Razao",
+      "Empresa"
+    ]);
+    const tipoCliente = escolherCampoBase(linha, [
+      "TIPO_CLIENTE",
+      "TIPO CLIENTE",
+      "Tipo",
+      "Classificacao",
+      "Classificação",
+      "Categoria"
+    ]);
+    const grupo = escolherCampoBase(linha, [
+      "GRUPO",
+      "Grupo",
+      "Grupo Cliente",
+      "Grupo Economico",
+      "Grupo Econômico",
+      "Grupo de Cliente",
+      "Segmento"
+    ]);
+
+    if (!cnpj && !razaoSocial) continue;
+
+    registros.set(cnpj || normalizarCabecalhoBase(razaoSocial), {
+      cnpj,
+      razaoSocial,
+      tipoCliente,
+      grupo
+    });
+  }
+
+  return Array.from(registros.values());
 }
 
 function normalizarTexto(valor) {
@@ -417,6 +473,37 @@ export async function obterBaseVortech(req, res) {
   }
 }
 
+export async function importarBaseVortechPlanilha(req, res) {
+  try {
+    const { nomeArquivo, conteudoBase64 } = req.body || {};
+
+    if (!conteudoBase64) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Envie uma planilha da Base Vortech."
+      });
+    }
+
+    const buffer = Buffer.from(conteudoBase64, "base64");
+    const workbook = xlsx.read(buffer, { type: "buffer", cellDates: false });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const linhas = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+    const registros = mapearLinhasBaseVortech(linhas);
+
+    return res.json({
+      sucesso: true,
+      origem: nomeArquivo || "upload",
+      total: registros.length,
+      registros
+    });
+  } catch (error) {
+    return res.status(400).json({
+      sucesso: false,
+      mensagem: `Nao foi possivel ler a planilha da Base Vortech: ${error.message}`
+    });
+  }
+}
+
 export async function obterMetricasProspects(req, res) {
   try {
     const [total, comEmail, comTelefone, porCnae] = await Promise.all([
@@ -466,6 +553,13 @@ export async function obterMetricasProspects(req, res) {
       mensagem: error.message
     });
   }
+}
+
+export async function obterStatusCnpjaApi(req, res) {
+  return res.json({
+    sucesso: true,
+    cnpja: obterStatusCnpja()
+  });
 }
 
 export async function listarContagensPorCnae(req, res) {

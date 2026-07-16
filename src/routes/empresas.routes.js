@@ -7,7 +7,9 @@ import {
   listarEmpresasPorCnae,
   contarEmpresasPorCnae,
   obterMetricasProspects,
+  obterStatusCnpjaApi,
   obterBaseVortech,
+  importarBaseVortechPlanilha,
   listarContagensPorCnae,
   exportarEmpresasExcel,
   exportarEmpresasPorTermoExcel,
@@ -20,7 +22,11 @@ router.get("/", listarEmpresas);
 
 router.get("/metricas", obterMetricasProspects);
 
+router.get("/cnpja/status", obterStatusCnpjaApi);
+
 router.get("/base-vortech", obterBaseVortech);
+
+router.post("/base-vortech/importar", importarBaseVortechPlanilha);
 
 router.get("/cnaes/contagens", listarContagensPorCnae);
 

@@ -248,6 +248,7 @@ h2 {
 
 .shortcut-list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
   max-height: calc(100vh - 144px);
   overflow-y: auto;
@@ -257,6 +258,7 @@ h2 {
 
 .shortcut-group {
   display: grid;
+  align-content: start;
   gap: 8px;
 }
 
@@ -476,6 +478,10 @@ button:disabled {
   border-bottom: 1px solid var(--line);
 }
 
+.results-header h2:empty {
+  display: none;
+}
+
 .actions-row {
   display: flex;
   flex-wrap: wrap;
@@ -522,6 +528,17 @@ button:disabled {
 
 .message {
   display: none;
+}
+
+.hidden-action {
+  display: none !important;
+}
+
+.cnpja-status {
+  margin: 10px 24px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .suggestion-row {
@@ -593,6 +610,17 @@ button:disabled {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.base-vortech-inputs {
+  display: grid;
+  gap: 8px;
+}
+
+.base-vortech-inputs input {
+  height: auto;
+  min-height: 40px;
+  padding: 9px 10px;
 }
 
 .base-vortech-panel textarea {

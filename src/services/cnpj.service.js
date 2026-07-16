@@ -5,6 +5,32 @@ import https from "node:https";
 const TEMPO_LIMITE_API_MS = Number(process.env.CNPJ_API_TIMEOUT_MS || 8000);
 const CNPJA_MAX_AGE = Number(process.env.CNPJA_MAX_AGE || 45);
 const CNPJA_GEOCODING = String(process.env.CNPJA_GEOCODING || "false").toLowerCase() === "true";
+const CAMPOS_SALDO_CNPJA = [
+  "x-ratelimit-remaining",
+  "x-rate-limit-remaining",
+  "ratelimit-remaining",
+  "x-credits-remaining",
+  "x-credit-remaining",
+  "x-tokens-remaining",
+  "x-token-remaining"
+];
+const CAMPOS_LIMITE_CNPJA = [
+  "x-ratelimit-limit",
+  "x-rate-limit-limit",
+  "ratelimit-limit",
+  "x-credits-limit",
+  "x-credit-limit",
+  "x-tokens-limit",
+  "x-token-limit"
+];
+
+let ultimoStatusCnpja = {
+  configurado: Boolean(process.env.CNPJA_API_KEY),
+  saldoRestante: null,
+  limite: null,
+  atualizadoEm: null,
+  fonte: process.env.CNPJA_API_KEY ? "CNPJA_API_KEY" : "open.cnpja.com"
+};
 
 const httpClient = axios.create({
   timeout: TEMPO_LIMITE_API_MS,
@@ -38,6 +64,35 @@ function enderecoCompleto(address = {}) {
 
 function normalizarCnae(valor) {
   return String(valor || "").replace(/\D/g, "");
+}
+
+function primeiroHeader(headers, nomes) {
+  for (const nome of nomes) {
+    const valor = headers?.[nome];
+    if (valor !== undefined && valor !== null && String(valor).trim()) {
+      return String(valor).trim();
+    }
+  }
+
+  return null;
+}
+
+function atualizarStatusCnpja(headers = {}) {
+  ultimoStatusCnpja = {
+    configurado: Boolean(process.env.CNPJA_API_KEY),
+    saldoRestante: primeiroHeader(headers, CAMPOS_SALDO_CNPJA),
+    limite: primeiroHeader(headers, CAMPOS_LIMITE_CNPJA),
+    atualizadoEm: new Date().toISOString(),
+    fonte: process.env.CNPJA_API_KEY ? "CNPJÁ" : "open.cnpja.com"
+  };
+}
+
+export function obterStatusCnpja() {
+  return {
+    ...ultimoStatusCnpja,
+    configurado: Boolean(process.env.CNPJA_API_KEY),
+    fonte: process.env.CNPJA_API_KEY ? "CNPJÁ" : "open.cnpja.com"
+  };
 }
 
 function mapearCnpja(data) {
@@ -108,6 +163,8 @@ async function buscarCnpjCnpja(cnpjLimpo) {
     params,
     headers: apiKey ? { Authorization: apiKey } : undefined,
   });
+
+  atualizarStatusCnpja(response.headers);
 
   return mapearCnpja(response.data);
 }
