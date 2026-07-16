@@ -42,7 +42,7 @@ body::before {
 
 .app-shell {
   position: relative;
-  width: min(1840px, calc(100% - 24px));
+  width: min(1880px, calc(100% - 32px));
   margin: 0 auto;
   padding: 18px 0;
 }
@@ -194,8 +194,8 @@ body::before {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 280px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) clamp(360px, 22vw, 420px);
+  gap: 16px;
   align-items: start;
 }
 
@@ -227,7 +227,7 @@ body::before {
 }
 
 .sidebar-head {
-  padding: 20px;
+  padding: 18px 20px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -249,10 +249,10 @@ h2 {
 .shortcut-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
   max-height: calc(100vh - 144px);
   overflow-y: auto;
-  padding: 12px;
+  padding: 14px;
   scrollbar-color: var(--accent) #111111;
 }
 
@@ -274,18 +274,18 @@ h2 {
 
 .shortcut-buttons {
   display: grid;
-  gap: 8px;
+  gap: 9px;
 }
 
 .cnae-chip {
   display: flex;
-  min-height: 58px;
+  min-height: 64px;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   border: 1px solid rgba(246, 217, 0, 0.22);
   border-radius: 6px;
-  padding: 12px 14px;
+  padding: 12px;
   background:
     linear-gradient(135deg, rgba(246, 217, 0, 0.08), transparent 42%),
     #1a1a1a;
@@ -309,14 +309,14 @@ h2 {
 
 .cnae-chip strong {
   color: var(--accent);
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.2;
 }
 
 .cnae-chip span {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1.25;
 }
@@ -471,10 +471,10 @@ button:disabled {
 
 .results-header {
   display: flex;
-  gap: 16px;
+  gap: 18px;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid var(--line);
 }
 

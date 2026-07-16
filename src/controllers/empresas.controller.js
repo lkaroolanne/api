@@ -138,6 +138,11 @@ function limparNumerosBase(valor) {
   return String(valor || "").replace(/\D/g, "");
 }
 
+function raizCnpjBase(valor) {
+  const limpo = limparNumerosBase(valor);
+  return limpo.length >= 8 ? limpo.slice(0, 8) : "";
+}
+
 function normalizarCabecalhoBase(valor) {
   return String(valor || "")
     .normalize("NFD")
@@ -242,16 +247,26 @@ function mapearLinhasBaseVortech(linhas) {
       "Grupo Economico",
       "Grupo Econômico",
       "Grupo de Cliente",
+      "Grupo de Empresas",
+      "Grupo Empresarial",
+      "CNPJ Raiz",
+      "Raiz CNPJ",
+      "Raiz",
+      "Matriz",
+      "Rede",
+      "Holding",
       "Segmento"
     ]);
 
     if (!cnpj && !razaoSocial) continue;
+    const cnpjRaiz = raizCnpjBase(cnpj);
 
     registros.set(cnpj || normalizarCabecalhoBase(razaoSocial), {
       cnpj,
+      cnpjRaiz,
       razaoSocial,
       tipoCliente,
-      grupo
+      grupo: grupo || cnpjRaiz
     });
   }
 

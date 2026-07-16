@@ -95,7 +95,7 @@
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
-          <p id="cnpja-status" class="cnpja-status">
+          <p id="cnpja-status" class="cnpja-status" hidden>
             CNPJÁ: verificando token...
           </p>
 
@@ -407,6 +407,11 @@
       return String(valor || "").replace(/\D/g, "");
     }
 
+    function raizCnpj(valor) {
+      const limpo = limparNumeros(valor);
+      return limpo.length >= 8 ? limpo.slice(0, 8) : "";
+    }
+
     function esperar(ms) {
       return new Promise((resolve) => setTimeout(resolve, ms));
     }
@@ -456,26 +461,30 @@
 
     function montarIndiceBaseVortech(base = []) {
       const cnpjs = new Map();
+      const cnpjRaizes = new Map();
       const nomes = new Map();
       const porToken = new Map();
       const itens = [];
 
       base.forEach((item) => {
         const cnpj = limparNumeros(item.cnpj);
+        const cnpjRaiz = item.cnpjRaiz || raizCnpj(cnpj);
         const nome = normalizarRazao(item.razaoSocial || item.nome || item.nomeFantasia);
 
         if (!cnpj && !nome) return;
 
         const registro = {
           cnpj,
+          cnpjRaiz,
           nome,
           razaoSocial: item.razaoSocial || item.nome || item.nomeFantasia || "",
           tipoCliente: item.tipoCliente || item.tipo || "",
-          grupo: item.grupo || item.grupoCliente || item.tipoCliente || item.tipo || ""
+          grupo: item.grupo || item.grupoCliente || item.tipoCliente || item.tipo || cnpjRaiz || ""
         };
 
         itens.push(registro);
         if (cnpj) cnpjs.set(cnpj, registro);
+        if (cnpjRaiz && !cnpjRaizes.has(cnpjRaiz)) cnpjRaizes.set(cnpjRaiz, registro);
         if (nome) nomes.set(nome, registro);
 
         tokensRazao(nome).forEach((token) => {
@@ -484,7 +493,7 @@
         });
       });
 
-      return { cnpjs, nomes, porToken, itens };
+      return { cnpjs, cnpjRaizes, nomes, porToken, itens };
     }
 
     function similaridadeRazao(nomeLead, registro) {
@@ -500,11 +509,17 @@
 
     function verificarBaseVortech(empresa) {
       const cnpj = limparNumeros(empresa?.cnpj);
+      const cnpjRaiz = raizCnpj(cnpj);
       const nomeLead = normalizarRazao(empresa?.razaoSocial || empresa?.nomeFantasia);
 
       if (cnpj && indiceBaseVortech.cnpjs.has(cnpj)) {
         const item = indiceBaseVortech.cnpjs.get(cnpj);
         return { tipo: "CNPJ", razaoSocial: item.razaoSocial, grupo: item.grupo, tipoCliente: item.tipoCliente };
+      }
+
+      if (cnpjRaiz && indiceBaseVortech.cnpjRaizes.has(cnpjRaiz)) {
+        const item = indiceBaseVortech.cnpjRaizes.get(cnpjRaiz);
+        return { tipo: "Raiz CNPJ", razaoSocial: item.razaoSocial, grupo: cnpjRaiz, tipoCliente: item.tipoCliente, cnpjRaiz };
       }
 
       if (nomeLead && indiceBaseVortech.nomes.has(nomeLead)) {
@@ -1045,6 +1060,7 @@
     }
 
     function textoStatusCnpja(cnpja) {
+      if (!cnpja?.configurado) return "";
       if (!cnpja?.configurado) {
         return "CNPJÁ: token nao configurado. Configure CNPJA_API_KEY no Render para usar a API paga.";
       }
@@ -1061,6 +1077,7 @@
         validarApiUrl();
         const dados = await buscarJson(`${API_URL}/empresas/cnpja/status`);
         cnpjaStatus.textContent = textoStatusCnpja(dados.cnpja);
+        cnpjaStatus.hidden = !cnpjaStatus.textContent;
       } catch (error) {
         cnpjaStatus.textContent = "CNPJÁ: nao foi possivel verificar o token agora.";
       }
@@ -1209,7 +1226,7 @@
       const total = estadoLocal.baseVortech.length;
       const grupos = new Set(
         estadoLocal.baseVortech
-          .map((item) => item.grupo || item.tipoCliente || item.tipo)
+          .map((item) => item.cnpjRaiz || raizCnpj(item.cnpj) || item.grupo || item.tipoCliente || item.tipo)
           .filter(Boolean)
       ).size;
 
@@ -1263,6 +1280,7 @@
 
           const cnpj = (linha.match(/\d{2}\D?\d{3}\D?\d{3}\D?\d{4}\D?\d{2}/) || [""])[0];
           const cnpjLimpo = limparNumeros(cnpj);
+          const cnpjRaiz = raizCnpj(cnpjLimpo);
           const partes = linha.split(/\t|;|,/);
           const razaoSocial = escolherRazaoSocial(partes, linha, cnpj);
           const nomeNormalizado = normalizarRazao(razaoSocial);
@@ -1276,8 +1294,9 @@
           const chave = cnpjLimpo || nomeNormalizado;
           registros.set(chave, {
             cnpj: cnpjLimpo,
+            cnpjRaiz,
             razaoSocial: razaoSocial || "",
-            grupo,
+            grupo: grupo || cnpjRaiz,
             tipoCliente: grupo
           });
         });
@@ -1483,8 +1502,9 @@
         baseVortechTexto.value = "";
         baseVortechArquivo.value = "";
 
-        const repetidos = empresasAtuais.filter((lead) => lead.baseVortechMatch).length;
-        mensagem.textContent = `Base carregada com ${formatarNumero(registros.length)} cliente(s). ${formatarNumero(repetidos)} repetido(s) encontrados na busca atual e serao removidos da exportacao.`;
+        const repetidos = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
+        const novos = empresasVisiveis.filter((lead) => !lead.baseVortechMatch).length;
+        mensagem.textContent = `Base carregada com ${formatarNumero(registros.length)} cliente(s). ${formatarNumero(repetidos)} repetido(s) encontrados por CNPJ, raiz do CNPJ ou nome. A exportacao vai sair com ${formatarNumero(novos)} empresa(s) nova(s).`;
       } catch (error) {
         mensagem.textContent = error.message;
       } finally {
