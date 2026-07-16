@@ -246,6 +246,7 @@
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
     const ATUALIZACOES_SIMULTANEAS = 6;
+    const INTERVALO_CNPJA_PUBLICA_MS = 13000;
     const LIMITE_CNAE_TELA = 1500;
     const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
@@ -1049,9 +1050,12 @@
     }
 
     function textoStatusCnpja(cnpja) {
-      if (!cnpja?.configurado) return "";
       if (!cnpja?.configurado) {
-        return "CNPJÁ: token nao configurado. Configure CNPJA_API_KEY no Render para usar a API paga.";
+        return "CNPJÁ: API indisponivel no momento.";
+      }
+
+      if (!cnpja.comercial) {
+        return "CNPJÁ: usando API publica open.cnpja.com sem token. Limite aproximado: 5 consultas por minuto.";
       }
 
       if (cnpja.saldoRestante) {
@@ -1454,8 +1458,8 @@
 
       const statusCnpja = await carregarStatusCnpja();
       if (!statusCnpja?.configurado) {
-        mensagem.textContent = "CNPJÁ nao configurado no Render. Configure CNPJA_API_KEY para atualizar em massa.";
-        cnpjaStatus.textContent = "CNPJÁ: CNPJA_API_KEY nao configurado no Render.";
+        mensagem.textContent = "CNPJÁ indisponivel agora. Tente novamente em alguns minutos.";
+        cnpjaStatus.textContent = "CNPJÁ: API indisponivel.";
         cnpjaStatus.hidden = false;
         return;
       }
@@ -1463,8 +1467,12 @@
       botaoAtualizarLote.disabled = true;
       botaoExportar.disabled = true;
       botaoAtualizarLote.textContent = "CNPJÁ...";
-      mensagem.textContent = `CNPJÁ atualizando dados: 0 de ${total}.`;
-      cnpjaStatus.textContent = "CNPJÁ: consultando saldo durante a atualizacao...";
+      mensagem.textContent = statusCnpja.comercial
+        ? `CNPJÁ atualizando dados: 0 de ${total}.`
+        : `CNPJÁ publica atualizando devagar por limite de 5/min: 0 de ${total}.`;
+      cnpjaStatus.textContent = statusCnpja.comercial
+        ? "CNPJÁ: consultando saldo durante a atualizacao..."
+        : "CNPJÁ: modo publico sem token, 1 consulta a cada 13 segundos.";
 
       async function trabalhador() {
         while (proximoIndex < total) {
@@ -1474,14 +1482,16 @@
           const ok = await atualizarCnpj(index);
           atualizados += ok ? 1 : 0;
           processados += 1;
-          mensagem.textContent = `CNPJÁ atualizando: ${processados} de ${total}. Atualizados: ${atualizados}.`;
+          mensagem.textContent = statusCnpja.comercial
+            ? `CNPJÁ atualizando: ${processados} de ${total}. Atualizados: ${atualizados}.`
+            : `CNPJÁ publica: ${processados} de ${total}. Atualizados: ${atualizados}.`;
 
-          await esperar(15);
+          await esperar(statusCnpja.comercial ? 15 : INTERVALO_CNPJA_PUBLICA_MS);
         }
       }
 
       const trabalhadores = Array.from(
-        { length: Math.min(ATUALIZACOES_SIMULTANEAS, total) },
+        { length: Math.min(statusCnpja.comercial ? ATUALIZACOES_SIMULTANEAS : 1, total) },
         () => trabalhador()
       );
 

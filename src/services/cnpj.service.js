@@ -25,7 +25,8 @@ const CAMPOS_LIMITE_CNPJA = [
 ];
 
 let ultimoStatusCnpja = {
-  configurado: Boolean(process.env.CNPJA_API_KEY),
+  configurado: true,
+  comercial: Boolean(process.env.CNPJA_API_KEY),
   saldoRestante: null,
   limite: null,
   atualizadoEm: null,
@@ -79,7 +80,8 @@ function primeiroHeader(headers, nomes) {
 
 function atualizarStatusCnpja(headers = {}) {
   ultimoStatusCnpja = {
-    configurado: Boolean(process.env.CNPJA_API_KEY),
+    configurado: true,
+    comercial: Boolean(process.env.CNPJA_API_KEY),
     saldoRestante: primeiroHeader(headers, CAMPOS_SALDO_CNPJA),
     limite: primeiroHeader(headers, CAMPOS_LIMITE_CNPJA),
     atualizadoEm: new Date().toISOString(),
@@ -90,7 +92,8 @@ function atualizarStatusCnpja(headers = {}) {
 export function obterStatusCnpja() {
   return {
     ...ultimoStatusCnpja,
-    configurado: Boolean(process.env.CNPJA_API_KEY),
+    configurado: true,
+    comercial: Boolean(process.env.CNPJA_API_KEY),
     fonte: process.env.CNPJA_API_KEY ? "CNPJÁ" : "open.cnpja.com"
   };
 }
