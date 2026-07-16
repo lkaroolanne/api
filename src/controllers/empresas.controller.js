@@ -1037,7 +1037,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
           cnaePrincipal: cnae
         },
         orderBy: [
-          { uf: "asc" },
+          { razaoSocial: "asc" },
           { nomeFantasia: "asc" },
           { cnpj: "asc" }
         ],

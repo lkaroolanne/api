@@ -221,7 +221,7 @@
     const INTERVALO_CNPJA_COMERCIAL_MS = 0;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
     const LIMITE_CNAE_TELA = 10000;
-    const LOTE_RENDERIZACAO = 80;
+    const LOTE_RENDERIZACAO = 40;
     const MINIMO_ATALHO_TERMO = 1;
     const MINIMO_ATALHO_CNAE = 1000;
     const atalhos = [
@@ -238,14 +238,14 @@
       },
       {
         titulo: "Palavras-chave",
-        tipo: "termo",
+        tipo: "atalho",
         itens: [
-          { valor: "solda soldagem eletrodo", nome: "Solda e Eletrodos" },
-          { valor: "maquina inversora solda", nome: "Maquinas de Solda" },
-          { valor: "ferragens ferramentas", nome: "Ferragens e Ferramentas" },
-          { valor: "gases cilindros oxigenio argonio acetileno", nome: "Gases e Cilindros" },
-          { valor: "regulador valvula macarico", nome: "Reguladores e Macaricos" },
-          { valor: "abrasivos corte plasma oxicorte", nome: "Corte e Abrasivos" }
+          { valor: "4744001", tipoBusca: "cnae", nome: "Ferragens e Ferramentas" },
+          { valor: "4672900", tipoBusca: "cnae", nome: "Atacado de Ferramentas" },
+          { valor: "4663000", tipoBusca: "cnae", nome: "Maquinas Industriais" },
+          { valor: "4684299", tipoBusca: "cnae", nome: "Gases e Quimicos" },
+          { valor: "solda soldagem eletrodo", tipoBusca: "termo", nome: "Solda e Eletrodos" },
+          { valor: "regulador valvula macarico", tipoBusca: "termo", nome: "Reguladores e Macaricos" }
         ]
       }
     ];
@@ -341,6 +341,7 @@
     let totalBaseOnline = null;
     let atalhosVisiveis = atalhos;
     let filtroAtual = "todos";
+    const cacheConsultas = new Map();
     let estadoLocal = carregarEstadoLocal();
     let indiceBaseVortech = montarIndiceBaseVortech(estadoLocal.baseVortech);
     let colunasTabela = {
@@ -692,6 +693,10 @@
     }
 
     function enriquecerEmpresa(empresa) {
+      if (empresa?.enriquecidoTela) {
+        return empresa;
+      }
+
       const chave = chaveEmpresa(empresa);
       const score = calcularScore(empresa);
       const baseVortechMatch = verificarBaseVortech(empresa);
@@ -700,6 +705,7 @@
       return {
         ...empresa,
         chaveLocal: chave,
+        enriquecidoTela: true,
         score: score.pontos,
         acaoSugerida: score.acao,
         tags: score.tags,
@@ -861,11 +867,12 @@
             ${grupo.itens.map((item) => {
               const valor = typeof item === "string" ? item : item.valor;
               const nome = typeof item === "string" ? item : item.nome;
+              const tipoBusca = typeof item === "string" ? grupo.tipo : item.tipoBusca || grupo.tipo;
               const codigo = grupo.tipo === "cnae" && typeof item !== "string" ? `<strong>${item.valor}</strong>` : "";
               const total = "";
 
               return `
-                <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparAtributo(valor)}">
+                <button class="cnae-chip" type="button" data-tipo="${tipoBusca}" data-valor="${escaparAtributo(valor)}">
                   ${codigo}
                   <span>${escaparHtml(nome)}</span>
                   ${total}
@@ -979,14 +986,26 @@
     }
 
     function renderizarLinhas(empresas) {
-      empresasAtuais = empresas.map(enriquecerEmpresa);
+      empresasAtuais = empresas.map((empresa) => ({
+        ...empresa,
+        chaveLocal: chaveEmpresa(empresa),
+        baseVortechMatch: verificarBaseVortech(empresa),
+        situacaoComercial: situacaoComercial(empresa),
+        telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
+        cidadeComercial: campoCidade(empresa),
+        ufComercial: campoUf(empresa)
+      }));
       quantidadeRenderizada = LOTE_RENDERIZACAO;
       aplicarFiltrosERenderizar();
     }
 
     function aplicarFiltrosERenderizar() {
-      empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
-      const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
+      const precisaOrdenar = buscaAtual.tipo !== "cnae";
+      empresasVisiveis = filtrarLeads(empresasAtuais);
+      if (precisaOrdenar) {
+        empresasVisiveis = ordenarLeads(empresasVisiveis.map(enriquecerEmpresa));
+      }
+      const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada).map(enriquecerEmpresa);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
       const colspan = colunasOrdenadas().length;
 
@@ -1318,7 +1337,10 @@
       mensagem.textContent = "Consultando o banco de prospects...";
 
       try {
-        const dados = await buscarJson(url);
+        const dados = cacheConsultas.has(url)
+          ? cacheConsultas.get(url)
+          : await buscarJson(url);
+        cacheConsultas.set(url, dados);
 
         if (!dados.sucesso) {
           throw new Error(dados.mensagem || "Nao foi possivel buscar os dados.");
@@ -1378,7 +1400,9 @@
     tabela.addEventListener("click", (event) => {
       const copiar = event.target.closest("[data-copiar]");
       if (copiar) {
-        copiarTexto(textoContato(empresasAtuais[Number(copiar.dataset.copiar)]), "Contato copiado para a area de transferencia.");
+        const index = Number(copiar.dataset.copiar);
+        empresasAtuais[index] = enriquecerEmpresa(empresasAtuais[index]);
+        copiarTexto(textoContato(empresasAtuais[index]), "Contato copiado para a area de transferencia.");
         return;
       }
 
@@ -1589,10 +1613,10 @@
         },
         body: JSON.stringify({
           busca: buscaAtual,
-          empresas: empresasAtuais,
+          empresas: buscaAtual.tipo === "cnae" ? [] : empresasAtuais,
           baseVortech: estadoLocal.baseVortech,
           nomeArquivo,
-          lotePagina
+          lotePagina: buscaAtual.tipo === "cnae" ? Math.max((buscaAtual.pagina || 1) - 1, 0) : lotePagina
         })
       });
 
