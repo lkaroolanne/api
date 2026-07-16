@@ -109,8 +109,8 @@ function lerLimiteEnv(chave, padrao) {
 }
 
 const LIMITE_BUSCA_TERMO = lerLimiteEnv("LIMITE_BUSCA_TERMO", 1500);
-const LIMITE_CNAE_TELA = lerLimiteEnv("LIMITE_CNAE_TELA", 1500);
-const LIMITE_MAXIMO_TELA = lerLimiteEnv("LIMITE_MAXIMO_TELA", 3000);
+const LIMITE_CNAE_TELA = lerLimiteEnv("LIMITE_CNAE_TELA", 10000);
+const LIMITE_MAXIMO_TELA = lerLimiteEnv("LIMITE_MAXIMO_TELA", 10000);
 const ARQUIVO_BASE_VORTECH = path.resolve(process.cwd(), "data", "base-vortech.xlsx");
 const SITUACOES_RECEITA = {
   "01": "Nula",
@@ -1001,7 +1001,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
       if (naoConferidas.length) {
         return res.status(400).json({
           sucesso: false,
-          mensagem: `Antes de exportar, clique em CNPJÁ para conferir a situação atual na API. Faltam ${naoConferidas.length} empresa(s) desta página.`
+          mensagem: `Antes de exportar, clique em Atualizar tudo para conferir a situação atual na API. Faltam ${naoConferidas.length} empresa(s) desta letra.`
         });
       }
 

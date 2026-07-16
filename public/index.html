@@ -80,7 +80,7 @@
 
             <div class="actions-row">
               <button id="atualizar-lote" class="secondary-button" type="button" disabled>
-                CNPJÁ
+                Atualizar tudo
               </button>
               <button id="base-vortech-toggle" class="ghost-button" type="button">
                 Base Vortech
@@ -195,12 +195,11 @@
                   <th data-coluna="telefone">Telefone</th>
                   <th data-coluna="email">Email</th>
                   <th data-coluna="acao">Acao</th>
-                  <th data-coluna="api">API</th>
                 </tr>
               </thead>
               <tbody id="tabela-resultados">
                 <tr>
-                  <td colspan="12" class="empty-state">Nenhuma busca realizada.</td>
+                  <td colspan="11" class="empty-state">Nenhuma busca realizada.</td>
                 </tr>
               </tbody>
             </table>
@@ -226,7 +225,7 @@
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
     const ATUALIZACOES_SIMULTANEAS = 6;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
-    const LIMITE_CNAE_TELA = 3000;
+    const LIMITE_CNAE_TELA = 10000;
     const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
 
@@ -237,41 +236,18 @@
         itens: [
           { valor: "4744001", nome: "Varejo de Ferragens e Ferramentas" },
           { valor: "4672900", nome: "Atacado de Ferragens e Ferramentas" },
-          { valor: "4684299", nome: "Distribuidores de Gases e Cilindros" },
-          { valor: "4663000", nome: "Revenda de Maquinas e Inversoras" },
-          { valor: "4669999", nome: "Revenda de Equipamentos Industriais" }
-        ]
-      },
-      {
-        titulo: "Palavras-chave",
-        tipo: "termo",
-        itens: [
-          "Solda",
-          "Soldagem",
-          "Maquina de Solda",
-          "Inversora",
-          "MIG",
-          "MAG",
-          "TIG",
-          "Eletrodo",
-          "Arame MIG",
-          "Vareta TIG",
-          "Tocha",
-          "Oxicorte",
-          "Plasma",
-          "Cilindros",
-          "Reguladores",
-          "Valvulas",
-          "Macaricos",
-          "Gases Industriais",
-          "Oxigenio",
-          "Argonio",
-          "Acetileno",
-          "Abrasivos",
-          "Ferragens",
-          "Ferramentas",
-          "Revendedor de Solda",
-          "Distribuidor de Gases"
+          { valor: "4663000", nome: "Atacado de Maquinas e Equipamentos Industriais" },
+          { valor: "4669999", nome: "Atacado de Outras Maquinas e Equipamentos" },
+          { valor: "4684299", nome: "Atacado de Quimicos e Gases Industriais" },
+          { valor: "4673700", nome: "Atacado de Material Eletrico" },
+          { valor: "4679699", nome: "Atacado de Materiais de Construcao" },
+          { valor: "4742300", nome: "Varejo de Material Eletrico" },
+          { valor: "4744003", nome: "Varejo de Materiais Hidraulicos" },
+          { valor: "4744099", nome: "Varejo de Materiais de Construcao" },
+          { valor: "4784900", nome: "Varejo de Gas e Cilindros GLP" },
+          { valor: "4662100", nome: "Maquinas para Construcao e Mineracao" },
+          { valor: "4661300", nome: "Maquinas e Equipamentos Agropecuarios" },
+          { valor: "4741500", nome: "Tintas e Materiais para Pintura" }
         ]
       }
     ];
@@ -334,8 +310,7 @@
       cidade: "Cidade/Codigo",
       telefone: "Telefone",
       email: "Email",
-      acao: "Acao",
-      api: "API"
+      acao: "Acao"
     };
     const ORDEM_COLUNAS_PADRAO = Object.keys(COLUNAS_PADRAO);
     const SITUACOES_RECEITA = {
@@ -352,11 +327,7 @@
     };
 
     const TERMOS_SCORE = ["solda", "soldagem", "ferramentas", "ferragens", "gases", "maquinas", "maquina", "inversora", "mig", "tig", "eletrodo", "distribuidor", "revenda", "industrial"];
-    const sugestoesRelacionadas = {
-      solda: ["Soldagem", "MIG", "TIG", "Eletrodo", "Maquina de Solda", "Inversora"],
-      gases: ["Oxigenio", "Argonio", "Acetileno", "Cilindros", "Reguladores"],
-      ferramentas: ["Ferragens", "Abrasivos", "Maquinas", "Suprimentos"]
-    };
+    const sugestoesRelacionadas = {};
     const templates = {
       "Primeiro contato": "Ola, tudo bem? Aqui e da Vortech Equipamentos. Trabalhamos com solucoes para solda, corte, gases e ferramentas industriais. Posso falar com o responsavel por compras?",
       "Follow-up": "Ola, passando para retomar nosso contato. Posso te enviar uma cotacao objetiva de equipamentos, consumiveis ou suprimentos tecnicos da Vortech?",
@@ -616,7 +587,7 @@
 
     function situacaoComercial(empresa) {
       if (!situacaoConferidaApi(empresa)) {
-        return { bloqueada: false, pendente: true, label: "Conferir CNPJÁ" };
+        return { bloqueada: false, pendente: true, label: "Precisa atualizar" };
       }
 
       const valorOriginal = String(empresa.situacao || empresa.status || empresa.situacaoCadastral || "").trim();
@@ -1006,7 +977,7 @@
           ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
           <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
           ${temEmail(lead)
-            ? `<a class="mini-button action-link" href="${urlEmail(lead)}">E-mail</a>`
+            ? `<a class="mini-button action-link" href="${urlEmail(lead)}" target="_blank" rel="noopener">E-mail</a>`
             : `<button class="mini-button" type="button" disabled>E-mail</button>`}
         </div>
       `;
@@ -1029,7 +1000,7 @@
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
-      const colspan = 12;
+      const colspan = 11;
 
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
@@ -1053,12 +1024,12 @@
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : lead.situacaoComercial?.pendente
-              ? `<span class="enrich-badge">Conferir CNPJÁ</span>`
+              ? `<span class="enrich-badge">Precisa atualizar</span>`
             : "";
           const situacaoTabela = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : lead.situacaoComercial?.pendente
-              ? `<span class="enrich-badge">Conferir CNPJÁ</span>`
+              ? `<span class="enrich-badge">Precisa atualizar</span>`
             : `<span class="status-badge">${escaparHtml(lead.situacaoComercial?.label || lead.situacao || "Nao informada")}</span>`;
           const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           const celulas = {
@@ -1072,8 +1043,7 @@
             cidade: `<td data-coluna="cidade" data-label="${escaparAtributo(tituloColuna("cidade"))}" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>`,
             telefone: `<td data-coluna="telefone" data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>`,
             email: `<td data-coluna="email" data-label="${escaparAtributo(tituloColuna("email"))}" data-campo="email">${escaparHtml(lead.email)}</td>`,
-            acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>`,
-            api: `<td data-coluna="api" data-label="${escaparAtributo(tituloColuna("api"))}"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>`
+            acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>`
           };
           return `
             <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""} ${lead.situacaoComercial?.bloqueada ? "lead-problem-row" : ""}" data-index="${index}">
@@ -1553,7 +1523,7 @@
 
       botaoAtualizarLote.disabled = true;
       botaoExportar.disabled = true;
-      botaoAtualizarLote.textContent = "CNPJÁ...";
+      botaoAtualizarLote.textContent = "Atualizando...";
       mensagem.textContent = statusCnpja.comercial
         ? `CNPJÁ atualizando dados: 0 de ${total}.`
         : `CNPJÁ publica atualizando devagar por limite de 5/min: 0 de ${total}.`;
@@ -1588,7 +1558,7 @@
         mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${total}. A planilha so sera liberada quando todos forem conferidos pela API.`;
         await carregarStatusCnpja();
         botaoAtualizarLote.disabled = false;
-        botaoAtualizarLote.textContent = "CNPJÁ";
+        botaoAtualizarLote.textContent = "Atualizar tudo";
         botaoExportar.disabled = true;
         atualizacaoAutomaticaCnpja = false;
         return;
@@ -1602,7 +1572,7 @@
         mensagem.textContent = `CNPJÁ atualizou ${atualizados} CNPJ(s), mas a exportacao falhou: ${error.message}`;
       }
       botaoAtualizarLote.disabled = false;
-      botaoAtualizarLote.textContent = "CNPJÁ";
+      botaoAtualizarLote.textContent = "Atualizar tudo";
       botaoExportar.disabled = !todosCnpjsConferidos();
     });
 
@@ -1681,7 +1651,7 @@
         return;
       }
       if (!todosCnpjsConferidos()) {
-        mensagem.textContent = "Para exportar com exatidao, clique em CNPJÁ e aguarde todos os CNPJs desta letra serem conferidos pela API.";
+        mensagem.textContent = "Para exportar com exatidao, clique em Atualizar tudo e aguarde todos os CNPJs desta letra serem conferidos pela API.";
         botaoExportar.disabled = true;
         return;
       }
@@ -1740,6 +1710,7 @@
       marcarAtalhoAtivo("", "");
       botaoExportar.disabled = true;
       botaoAtualizarLote.disabled = true;
+      botaoAtualizarLote.textContent = "Atualizar tudo";
       paginacao.hidden = true;
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
@@ -1748,7 +1719,7 @@
       tabelaContainer.hidden = false;
       resumo.textContent = "";
       mensagem.textContent = mensagemApiPadrao;
-      tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nenhuma busca realizada.</td></tr>';
+      tabela.innerHTML = '<tr><td colspan="11" class="empty-state">Nenhuma busca realizada.</td></tr>';
       inputBusca.focus();
     });
 
