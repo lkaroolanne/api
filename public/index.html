@@ -170,11 +170,10 @@
 
           <div id="paginacao" class="pagination-bar" hidden>
             <div>
-              <strong id="pagina-info">Razao social A-Z</strong>
+              <strong id="pagina-info">Paginas</strong>
               <span id="pagina-range">Mostrando resultados</span>
             </div>
-            <div class="letter-actions" id="letras-razao"></div>
-            <div class="page-actions" id="paginas-letra"></div>
+            <div class="page-actions" id="paginas-numericas"></div>
           </div>
 
           <div class="table-wrap">
@@ -226,6 +225,7 @@
     const LIMITE_CNAE_TELA = 10000;
     const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
+    const MINIMO_ATALHO_CNAE = 1000;
     const atalhos = [
       {
         titulo: "CNAEs",
@@ -279,8 +279,7 @@
     const paginacao = $("#paginacao");
     const paginaInfo = $("#pagina-info");
     const paginaRange = $("#pagina-range");
-    const letrasRazao = $("#letras-razao");
-    const paginasLetra = $("#paginas-letra");
+    const paginasNumericas = $("#paginas-numericas");
     const barraComercial = $("#commercial-toolbar");
     const filtrosRapidos = $("#filtros-rapidos");
     const botaoLimparFiltros = $("#limpar-filtros");
@@ -342,7 +341,7 @@
       "Ferramentas": "Ola, tudo bem? A Vortech trabalha com ferragens, ferramentas e suprimentos tecnicos. Posso falar com o responsavel por compras?"
     };
 
-    let buscaAtual = { tipo: "", valor: "", letra: "A", pagina: 1, totalPaginas: 1, total: 0 };
+    let buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1, total: 0 };
     let empresasAtuais = [];
     let empresasVisiveis = [];
     let quantidadeRenderizada = LOTE_RENDERIZACAO;
@@ -769,27 +768,15 @@
     }
 
     function atualizarPaginacao(dados) {
-      const letras = Array.isArray(dados.letras) && dados.letras.length
-        ? dados.letras
-        : "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").concat("0-9");
-      const letraAtual = dados.letra || buscaAtual.letra || "A";
-
       if (buscaAtual.tipo !== "cnae") {
         paginacao.hidden = true;
         return;
       }
 
       paginacao.hidden = false;
-      paginaInfo.textContent = `Razao social: ${letraAtual}`;
-      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)}. ${formatarNumero(dados.exibidos || 0)} exibida(s) de ${formatarNumero(dados.totalLetra || dados.exibidos || 0)} em ${letraAtual}. Total do CNAE: ${formatarNumero(dados.total)}.`;
-      letrasRazao.innerHTML = letras.map((letra) => `
-        <button
-          class="letter-button ${letra === letraAtual ? "is-active" : ""}"
-          type="button"
-          data-letra="${escaparAtributo(letra)}"
-        >${escaparHtml(letra)}</button>
-      `).join("");
-      paginasLetra.innerHTML = Array.from({ length: dados.totalPaginas || 1 }, (_, indice) => {
+      paginaInfo.textContent = "Paginas";
+      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)}. ${formatarNumero(dados.exibidos || 0)} exibida(s) de ${formatarNumero(dados.total || 0)} CNPJ(s).`;
+      paginasNumericas.innerHTML = Array.from({ length: dados.totalPaginas || 1 }, (_, indice) => {
         const pagina = indice + 1;
         return `
           <button
@@ -918,6 +905,7 @@
                     ...item,
                     total: dados.porCnae[item.valor] || 0
                   }))
+                  .filter((item) => item.total >= MINIMO_ATALHO_CNAE)
               };
             }
 
@@ -1138,15 +1126,6 @@
       return Boolean(empresasAtuais.length);
     }
 
-    function proximaLetraRazaoSocial() {
-      const letras = Array.from(letrasRazao.querySelectorAll("[data-letra]"))
-        .map((botao) => botao.dataset.letra)
-        .filter(Boolean);
-      const indiceAtual = letras.indexOf(buscaAtual.letra || "A");
-
-      return indiceAtual >= 0 ? letras[indiceAtual + 1] : "";
-    }
-
     function iniciarAtualizacaoAutomaticaCnpja() {
       if (!empresasAtuais.length || todosCnpjsConferidos() || botaoAtualizarLote.disabled) {
         return;
@@ -1318,7 +1297,7 @@
       return Array.from(registros.values());
     }
 
-    async function executarBusca(valor, tipo = "auto", letra = "A", pagina = 1) {
+    async function executarBusca(valor, tipo = "auto", pagina = 1) {
       const termo = String(valor || "").trim();
 
       if (!termo) {
@@ -1340,7 +1319,7 @@
       }
 
       const url = buscaPorCnae
-        ? `${API_URL}/empresas/cnae/${apenasNumeros}?limite=${LIMITE_CNAE_TELA}&letra=${encodeURIComponent(letra)}&pagina=${pagina}`
+        ? `${API_URL}/empresas/cnae/${apenasNumeros}?limite=${LIMITE_CNAE_TELA}&pagina=${pagina}`
         : `${API_URL}/empresas/busca?termo=${encodeURIComponent(termo)}`;
 
       definirCarregando(true);
@@ -1360,7 +1339,6 @@
         buscaAtual = {
           tipo: buscaPorCnae ? "cnae" : "termo",
           valor: buscaPorCnae ? dados.cnae : dados.termo,
-          letra: dados.letra || letra || "A",
           pagina: dados.pagina || pagina || 1,
           totalPaginas: dados.totalPaginas || 1,
           total: dados.total || 0
@@ -1369,7 +1347,7 @@
         const exibidos = dados.exibidos || dados.empresas?.length || 0;
         resumo.textContent = `${formatarNumero(dados.total)} CNPJ(s) encontrados`;
         mensagem.textContent = buscaAtual.tipo === "cnae"
-          ? `Letra ${buscaAtual.letra}, pagina ${buscaAtual.pagina}: ${formatarNumero(exibidos)} registro(s).`
+          ? `Pagina ${buscaAtual.pagina}: ${formatarNumero(exibidos)} registro(s).`
           : `${formatarNumero(exibidos)} lead(s) carregados.`;
 
         atualizarPaginacao(dados);
@@ -1377,7 +1355,7 @@
         renderizarLinhas(dados.empresas || []);
         botaoExportar.disabled = !dados.empresas?.length;
       } catch (error) {
-        buscaAtual = { tipo: "", valor: "", letra: "A", pagina: 1, totalPaginas: 1 };
+        buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
         empresasAtuais = [];
         empresasVisiveis = [];
         paginacao.hidden = true;
@@ -1519,12 +1497,12 @@
       }
 
       if (!totalPendentes) {
-        mensagem.textContent = "Todos os CNPJs desta letra ja estao atualizados. Excel liberado.";
+        mensagem.textContent = "Todos os CNPJs desta pagina ja estao atualizados. Excel liberado.";
         botaoExportar.disabled = false;
         return;
       }
 
-      if (!window.confirm(`Atualizar agora ${formatarNumero(totalPendentes)} CNPJ(s) pendente(s) desta letra pela CNPJÁ?`)) {
+      if (!window.confirm(`Atualizar agora ${formatarNumero(totalPendentes)} CNPJ(s) pendente(s) desta pagina pela CNPJÁ?`)) {
         mensagem.textContent = "Atualizacao cancelada.";
         return;
       }
@@ -1594,16 +1572,8 @@
       botaoExportar.disabled = !todosCnpjsConferidos();
 
       const proximaPagina = buscaAtual.pagina < buscaAtual.totalPaginas ? buscaAtual.pagina + 1 : 0;
-      const proximaLetra = buscaAtual.tipo === "cnae" && !proximaPagina ? proximaLetraRazaoSocial() : "";
-      if (proximaPagina && window.confirm(`Pagina ${buscaAtual.pagina} finalizada. Ir para a pagina ${proximaPagina} da letra ${buscaAtual.letra} e atualizar tambem?`)) {
-        await executarBusca(buscaAtual.valor, "cnae", buscaAtual.letra, proximaPagina);
-        window.setTimeout(() => {
-          if (!botaoAtualizarLote.disabled) {
-            botaoAtualizarLote.click();
-          }
-        }, 400);
-      } else if (proximaLetra && window.confirm(`Letra ${buscaAtual.letra} finalizada. Ir para a letra ${proximaLetra} e atualizar tambem?`)) {
-        await executarBusca(buscaAtual.valor, "cnae", proximaLetra, 1);
+      if (proximaPagina && window.confirm(`Pagina ${buscaAtual.pagina} finalizada. Ir para a pagina ${proximaPagina} e atualizar tambem?`)) {
+        await executarBusca(buscaAtual.valor, "cnae", proximaPagina);
         window.setTimeout(() => {
           if (!botaoAtualizarLote.disabled) {
             botaoAtualizarLote.click();
@@ -1618,9 +1588,8 @@
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-|-$/g, "") || "prospects";
 
-      const letra = buscaAtual.tipo === "cnae" ? `-${buscaAtual.letra || "A"}` : "";
       const pagina = buscaAtual.tipo === "cnae" ? `-p${buscaAtual.pagina || 1}` : "";
-      return `vortech-${termo}${letra}${pagina}-${data}`;
+      return `vortech-${termo}${pagina}-${data}`;
     }
 
     async function baixarExcelFiltrado(nomeArquivo, lotePagina = 0) {
@@ -1690,9 +1659,9 @@
       try {
         botaoExportar.disabled = true;
         const nomeBase = nomeArquivoExportacao();
-        mensagem.textContent = `Gerando Excel da letra ${buscaAtual.letra || "A"}, pagina ${buscaAtual.pagina || 1}...`;
+        mensagem.textContent = `Gerando Excel da pagina ${buscaAtual.pagina || 1}...`;
         const totais = await baixarExcelFiltrado(nomeBase);
-        mensagem.textContent = `Letra ${buscaAtual.letra || "A"}, pagina ${buscaAtual.pagina || 1}, exportada com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} removida(s) de ${formatarNumero(totais.encontrado)} desta pagina.`;
+        mensagem.textContent = `Pagina ${buscaAtual.pagina || 1} exportada com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} removida(s) de ${formatarNumero(totais.encontrado)} desta pagina.`;
       } catch (error) {
         mensagem.textContent = error.message;
       } finally {
@@ -1726,22 +1695,15 @@
       executarBusca(botao.dataset.sugestao, "termo");
     });
 
-    letrasRazao.addEventListener("click", (event) => {
-      const botao = event.target.closest("[data-letra]");
-      if (botao && buscaAtual.tipo === "cnae") {
-        executarBusca(buscaAtual.valor, "cnae", botao.dataset.letra, 1);
-      }
-    });
-
-    paginasLetra.addEventListener("click", (event) => {
+    paginasNumericas.addEventListener("click", (event) => {
       const botao = event.target.closest("[data-pagina]");
       if (botao && buscaAtual.tipo === "cnae") {
-        executarBusca(buscaAtual.valor, "cnae", buscaAtual.letra, Number(botao.dataset.pagina) || 1);
+        executarBusca(buscaAtual.valor, "cnae", Number(botao.dataset.pagina) || 1);
       }
     });
 
     botaoLimpar.addEventListener("click", () => {
-      buscaAtual = { tipo: "", valor: "", letra: "A", pagina: 1, totalPaginas: 1 };
+      buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
       empresasAtuais = [];
       empresasVisiveis = [];
       inputBusca.value = "";

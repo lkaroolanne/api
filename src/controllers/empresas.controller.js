@@ -124,9 +124,6 @@ const SITUACOES_RECEITA = {
   "08": "Baixada",
   "8": "Baixada"
 };
-const LETRAS_RAZAO_SOCIAL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const LETRA_NUMEROS = "0-9";
-
 let cacheBaseVortech = {
   mtimeMs: 0,
   registros: []
@@ -159,41 +156,6 @@ const CAMPOS_LISTA_PROSPECTS = {
 
 function normalizarTermoBusca(valor) {
   return String(valor || "").trim();
-}
-
-function normalizarLetraRazao(valor) {
-  const letra = String(valor || "A")
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase();
-
-  if (LETRAS_RAZAO_SOCIAL.includes(letra)) return letra;
-  if (["0", "0-9", "NUMEROS", "NÚMEROS", "NUMBERS"].includes(letra)) return LETRA_NUMEROS;
-  return "A";
-}
-
-function filtroLetraRazaoSocial(letra) {
-  if (letra === LETRA_NUMEROS) {
-    return {
-      OR: [
-        { razaoSocial: null },
-        { razaoSocial: "" },
-        ...Array.from({ length: 10 }, (_, numero) => ({
-          razaoSocial: {
-            startsWith: String(numero)
-          }
-        }))
-      ]
-    };
-  }
-
-  return {
-    razaoSocial: {
-      startsWith: letra,
-      mode: "insensitive"
-    }
-  };
 }
 
 function limparNumerosBase(valor) {
@@ -825,7 +787,6 @@ export async function listarEmpresasPorCnae(req, res) {
     const cnae = String(req.params.cnae || "").replace(/\D/g, "");
     const limiteSolicitado = Number.parseInt(req.query.limite, 10);
     const paginaSolicitada = Number.parseInt(req.query.pagina, 10);
-    const letra = normalizarLetraRazao(req.query.letra);
     const limite = Number.isFinite(limiteSolicitado)
       ? Math.min(Math.max(limiteSolicitado, 1), LIMITE_MAXIMO_TELA)
       : LIMITE_CNAE_TELA;
@@ -841,14 +802,10 @@ export async function listarEmpresasPorCnae(req, res) {
       });
     }
 
-    const where = {
-      cnaePrincipal: cnae,
-      ...filtroLetraRazaoSocial(letra)
-    };
+    const where = { cnaePrincipal: cnae };
     const whereTotal = { cnaePrincipal: cnae };
-    const [total, totalLetra, empresas] = await Promise.all([
+    const [total, empresas] = await Promise.all([
       prisma.receitaProspect.count({ where: whereTotal }),
-      prisma.receitaProspect.count({ where }),
       prisma.receitaProspect.findMany({
         where,
         select: CAMPOS_LISTA_PROSPECTS,
@@ -861,23 +818,20 @@ export async function listarEmpresasPorCnae(req, res) {
         take: limite
       })
     ]);
-    const totalPaginas = Math.max(Math.ceil(totalLetra / limite), 1);
+    const totalPaginas = Math.max(Math.ceil(total / limite), 1);
 
     return res.json({
       sucesso: true,
       cnae,
       total,
-      totalLetra,
       exibidos: empresas.length,
       limite,
       pagina,
       totalPaginas,
-      inicio: totalLetra ? skip + 1 : 0,
+      inicio: total ? skip + 1 : 0,
       fim: skip + empresas.length,
-      letra,
-      letras: [...LETRAS_RAZAO_SOCIAL, LETRA_NUMEROS],
-      parcial: totalLetra > empresas.length,
-      criterio: "CNAE principal exato por letra da razao social",
+      parcial: total > empresas.length,
+      criterio: "CNAE principal exato ordenado por razao social",
       empresas
     });
   } catch (error) {
