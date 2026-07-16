@@ -333,6 +333,17 @@ function existeNaBaseCliente(empresa, indice) {
   return false;
 }
 
+function situacaoBloqueiaVenda(empresa) {
+  const valorOriginal = String(empresa?.situacao || empresa?.status || empresa?.situacaoCadastral || "").trim();
+  const valor = normalizarTexto(valorOriginal);
+
+  if (!valor) return false;
+  if (["02", "2", "ativa", "ativo"].includes(valor)) return false;
+  if (/baix|inativ|inapt|suspens|nul|cancel|encerr|irregular/.test(valor)) return true;
+
+  return /^\d+$/.test(valor) && valor !== "02" && valor !== "2";
+}
+
 function textoEmpresa(empresa) {
   return [
     empresa.razaoSocial,
@@ -907,7 +918,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
 
         totalEncontrado += lote.length;
         empresasNovas.push(
-          ...lote.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes))
+          ...lote.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa))
         );
         pagina += 1;
       } while (lote.length === LOTE_EXPORTACAO_CNAE);
@@ -933,7 +944,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
 
       empresas = filtrarEmpresasAderentes(encontradas, termo);
       totalEncontrado = empresas.length;
-      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes));
+      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
     }
 
     if (!empresasNovas.length) {

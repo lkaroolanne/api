@@ -952,7 +952,8 @@ td:first-child {
 .tag,
 .contact-badge,
 .enrich-badge,
-.base-match-badge {
+.base-match-badge,
+.problem-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -980,7 +981,8 @@ td:first-child {
 .score-stack .score-pill,
 .score-stack .contact-badge,
 .score-stack .enrich-badge,
-.score-stack .base-match-badge {
+.score-stack .base-match-badge,
+.score-stack .problem-badge {
   margin-top: 0;
   max-width: 100%;
   white-space: normal;
@@ -1036,6 +1038,17 @@ td:first-child {
   border: 1px solid rgba(255, 177, 92, 0.4);
   background: rgba(255, 177, 92, 0.13);
   color: #ffd3a1;
+}
+
+.problem-badge {
+  margin-top: 6px;
+  border: 1px solid rgba(255, 94, 94, 0.46);
+  background: rgba(255, 94, 94, 0.14);
+  color: #ffc5c5;
+}
+
+.lead-problem-row {
+  box-shadow: inset 3px 0 0 rgba(255, 94, 94, 0.7);
 }
 
 .action-link {

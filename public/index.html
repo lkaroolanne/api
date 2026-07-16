@@ -534,6 +534,31 @@
       return Boolean(String(empresa.email || "").trim());
     }
 
+    function situacaoComercial(empresa) {
+      const valorOriginal = String(empresa.situacao || empresa.status || empresa.situacaoCadastral || "").trim();
+      const valor = normalizarTexto(valorOriginal);
+
+      if (!valor) return { bloqueada: false, label: "" };
+      if (["02", "2", "ativa", "ativo"].includes(valor)) return { bloqueada: false, label: "Ativa" };
+
+      const problemas = [
+        ["baix", "Baixada"],
+        ["inativ", "Inativa"],
+        ["inapt", "Inapta"],
+        ["suspens", "Suspensa"],
+        ["nul", "Nula"],
+        ["cancel", "Cancelada"],
+        ["encerr", "Encerrada"],
+        ["irregular", "Irregular"]
+      ];
+      const problema = problemas.find(([chave]) => valor.includes(chave));
+
+      if (problema) return { bloqueada: true, label: problema[1] };
+      if (/^\d+$/.test(valor) && valor !== "02" && valor !== "2") return { bloqueada: true, label: `Situacao ${valorOriginal}` };
+
+      return { bloqueada: false, label: valorOriginal };
+    }
+
     function textoBaseEmpresa(empresa) {
       return normalizarTexto([
         empresa.razaoSocial,
@@ -618,6 +643,7 @@
       const chave = chaveEmpresa(empresa);
       const score = calcularScore(empresa);
       const baseVortechMatch = verificarBaseVortech(empresa);
+      const situacaoLead = situacaoComercial(empresa);
 
       return {
         ...empresa,
@@ -627,6 +653,7 @@
         tags: score.tags,
         favorito: Boolean(estadoLocal.favoritos[chave]),
         baseVortechMatch,
+        situacaoComercial: situacaoLead,
         telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
         cidadeComercial: campoCidade(empresa),
         ufComercial: campoUf(empresa)
@@ -642,6 +669,7 @@
         `E-mail: ${texto(lead.email)}`,
         `Cidade/UF: ${texto(lead.cidadeComercial)}/${texto(lead.ufComercial)}`,
         `CNAE: ${texto(lead.cnaePrincipal)}`,
+        `Situacao: ${lead.situacaoComercial?.label || texto(lead.situacao)}`,
         `Acao sugerida: ${lead.acaoSugerida}`,
         `Tags: ${lead.tags.join(", ") || "-"}`,
         `Base Vortech: ${lead.baseVortechMatch ? `Ja consta (${lead.baseVortechMatch.tipo}) - ${lead.baseVortechMatch.razaoSocial || ""}` : "Nao encontrada"}`
@@ -958,9 +986,12 @@
           const badgeBaseVortech = lead.baseVortechMatch
             ? `<span class="base-match-badge" title="${escaparAtributo(lead.baseVortechMatch.razaoSocial || "")}">Ja na base: ${escaparHtml(lead.baseVortechMatch.grupo || lead.baseVortechMatch.tipoCliente || lead.baseVortechMatch.tipo)}</span>`
             : "";
-          const badgesContato = `<div class="score-stack">${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
+          const badgeSituacao = lead.situacaoComercial?.bloqueada
+            ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
+            : "";
+          const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           return `
-            <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""}" data-index="${index}">
+            <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""} ${lead.situacaoComercial?.bloqueada ? "lead-problem-row" : ""}" data-index="${index}">
               <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
