@@ -297,6 +297,19 @@ function mapearLinhasBaseVortech(linhas) {
   return Array.from(registros.values());
 }
 
+function lerBaseVortechArquivoSeguro() {
+  try {
+    if (!fs.existsSync(ARQUIVO_BASE_VORTECH)) {
+      return [];
+    }
+
+    return lerBaseVortechArquivo();
+  } catch (error) {
+    console.warn("Nao foi possivel ler a base oficial Vortech:", error.message);
+    return [];
+  }
+}
+
 function normalizarTexto(valor) {
   return String(valor || "")
     .toLowerCase()
@@ -394,13 +407,39 @@ function situacaoBloqueiaVenda(empresa) {
   const valor = normalizarTexto(valorOriginal);
   const codigo = limparNumerosBase(valorOriginal);
 
-  if (!valor) return false;
+  if (!valor) return true;
   if (SITUACOES_RECEITA[valorOriginal] === "Ativa" || SITUACOES_RECEITA[codigo] === "Ativa") return false;
   if (SITUACOES_RECEITA[valorOriginal] || SITUACOES_RECEITA[codigo]) return true;
   if (["ativa", "ativo"].includes(valor)) return false;
   if (/baix|inativ|inapt|suspens|nul|cancel|encerr|irregular/.test(valor)) return true;
 
-  return /^\d+$/.test(codigo) && codigo !== "02" && codigo !== "2";
+  return true;
+}
+
+function separarEmpresasExportaveis(empresas = [], indiceClientes) {
+  const novas = [];
+  let removidasBase = 0;
+  let removidasSituacao = 0;
+
+  for (const empresa of empresas) {
+    if (existeNaBaseCliente(empresa, indiceClientes)) {
+      removidasBase += 1;
+      continue;
+    }
+
+    if (situacaoBloqueiaVenda(empresa)) {
+      removidasSituacao += 1;
+      continue;
+    }
+
+    novas.push(empresa);
+  }
+
+  return {
+    novas,
+    removidasBase,
+    removidasSituacao
+  };
 }
 
 function textoEmpresa(empresa) {
@@ -957,13 +996,25 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     let empresas = [];
     let empresasNovas = [];
     let totalEncontrado = 0;
+    let totalRemovidoBase = 0;
+    let totalRemovidoSituacao = 0;
     let temProximoLote = false;
-    const indiceClientes = montarIndiceClientesBase(baseVortech);
+    const baseOficialVortech = lerBaseVortechArquivoSeguro();
+    const indiceClientes = montarIndiceClientesBase([
+      ...baseOficialVortech,
+      ...baseVortech
+    ]);
+    const aplicarFiltroFinal = (lista) => {
+      const resultado = separarEmpresasExportaveis(lista, indiceClientes);
+      totalRemovidoBase = resultado.removidasBase;
+      totalRemovidoSituacao = resultado.removidasSituacao;
+      return resultado.novas;
+    };
 
     if (empresasRecebidas.length) {
       empresas = await completarEmpresasParaExportacao(empresasRecebidas);
       totalEncontrado = empresas.length;
-      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
+      empresasNovas = aplicarFiltroFinal(empresas);
     } else if (busca.tipo === "cnae") {
       const cnae = String(busca.valor || "").replace(/\D/g, "");
 
@@ -990,7 +1041,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
       temProximoLote = lote.length > LOTE_EXPORTACAO_CNAE;
       empresas = lote.slice(0, LOTE_EXPORTACAO_CNAE);
       totalEncontrado = empresas.length;
-      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
+      empresasNovas = aplicarFiltroFinal(empresas);
     } else {
       const { termo, where } = montarFiltroBusca(busca.valor);
 
@@ -1013,13 +1064,15 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
 
       empresas = filtrarEmpresasAderentes(encontradas, termo);
       totalEncontrado = empresas.length;
-      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
+      empresasNovas = aplicarFiltroFinal(empresas);
     }
 
     if (!empresasNovas.length && busca.tipo === "cnae") {
       res.setHeader("X-Total-Encontrado", String(totalEncontrado));
       res.setHeader("X-Total-Exportado", "0");
       res.setHeader("X-Total-Removido", String(totalEncontrado));
+      res.setHeader("X-Total-Base-Vortech", String(totalRemovidoBase));
+      res.setHeader("X-Total-Situacao-Bloqueada", String(totalRemovidoSituacao));
       res.setHeader("X-Tem-Proximo-Lote", temProximoLote ? "1" : "0");
       res.setHeader("X-Lote-Pagina", String(lotePagina));
       return res.status(204).send();
@@ -1047,6 +1100,8 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     res.setHeader("X-Total-Encontrado", String(totalEncontrado));
     res.setHeader("X-Total-Exportado", String(empresasNovas.length));
     res.setHeader("X-Total-Removido", String(totalEncontrado - empresasNovas.length));
+    res.setHeader("X-Total-Base-Vortech", String(totalRemovidoBase));
+    res.setHeader("X-Total-Situacao-Bloqueada", String(totalRemovidoSituacao));
     res.setHeader("X-Tem-Proximo-Lote", temProximoLote ? "1" : "0");
     res.setHeader("X-Lote-Pagina", String(lotePagina));
 

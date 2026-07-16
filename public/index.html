@@ -997,7 +997,7 @@
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
-      const colspan = 11;
+      const colspan = colunasOrdenadas().length;
 
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
@@ -1610,6 +1610,8 @@
           encontrado: Number(resposta.headers.get("X-Total-Encontrado") || 0),
           exportado: 0,
           removido: Number(resposta.headers.get("X-Total-Removido") || 0),
+          removidoBase: Number(resposta.headers.get("X-Total-Base-Vortech") || 0),
+          removidoSituacao: Number(resposta.headers.get("X-Total-Situacao-Bloqueada") || 0),
           temProximo: resposta.headers.get("X-Tem-Proximo-Lote") === "1"
         };
       }
@@ -1638,6 +1640,8 @@
         encontrado: Number(resposta.headers.get("X-Total-Encontrado") || 0),
         exportado: Number(resposta.headers.get("X-Total-Exportado") || 0),
         removido: Number(resposta.headers.get("X-Total-Removido") || 0),
+        removidoBase: Number(resposta.headers.get("X-Total-Base-Vortech") || 0),
+        removidoSituacao: Number(resposta.headers.get("X-Total-Situacao-Bloqueada") || 0),
         temProximo: resposta.headers.get("X-Tem-Proximo-Lote") === "1"
       };
     }
@@ -1658,7 +1662,7 @@
         const nomeBase = nomeArquivoExportacao();
         mensagem.textContent = `Gerando Excel da pagina ${buscaAtual.pagina || 1}...`;
         const totais = await baixarExcelFiltrado(nomeBase);
-        mensagem.textContent = `Pagina ${buscaAtual.pagina || 1} exportada com ${formatarNumero(totais.exportado)} empresa(s) nova(s). ${formatarNumero(totais.removido)} removida(s) de ${formatarNumero(totais.encontrado)} desta pagina.`;
+        mensagem.textContent = `Pagina ${buscaAtual.pagina || 1}: ${formatarNumero(totais.exportado)} nova(s) exportada(s). Removidas: ${formatarNumero(totais.removidoBase || 0)} Base Vortech e ${formatarNumero(totais.removidoSituacao || 0)} situacao bloqueada.`;
       } catch (error) {
         mensagem.textContent = error.message;
       } finally {
@@ -1716,7 +1720,7 @@
       tabelaContainer.hidden = false;
       resumo.textContent = "";
       mensagem.textContent = mensagemApiPadrao;
-      tabela.innerHTML = '<tr><td colspan="11" class="empty-state">Nenhuma busca realizada.</td></tr>';
+      tabela.innerHTML = `<tr><td colspan="${colunasOrdenadas().length}" class="empty-state">Nenhuma busca realizada.</td></tr>`;
       inputBusca.focus();
     });
 
