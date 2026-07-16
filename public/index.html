@@ -770,6 +770,14 @@
       return `https://web.whatsapp.com/send?phone=${telefone}&text=${encodeURIComponent(mensagemWhatsapp(lead))}`;
     }
 
+    function urlEmail(lead) {
+      const email = String(lead.email || "").trim();
+      const empresa = lead.nomeFantasia || lead.razaoSocial || "sua empresa";
+      const assunto = `Contato comercial - ${empresa}`;
+
+      return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemEmail(lead))}`;
+    }
+
     async function copiarTexto(valor, feedback = "Copiado.") {
       try {
         await navigator.clipboard.writeText(valor);
@@ -997,7 +1005,9 @@
         <div class="lead-actions">
           ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
           <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
-          <button class="mini-button" type="button" data-email="${index}">E-mail</button>
+          ${temEmail(lead)
+            ? `<a class="mini-button action-link" href="${urlEmail(lead)}">E-mail</a>`
+            : `<button class="mini-button" type="button" disabled>E-mail</button>`}
         </div>
       `;
     }
@@ -1432,12 +1442,6 @@
       const copiar = event.target.closest("[data-copiar]");
       if (copiar) {
         copiarTexto(textoContato(empresasAtuais[Number(copiar.dataset.copiar)]), "Contato copiado para a area de transferencia.");
-        return;
-      }
-
-      const email = event.target.closest("[data-email]");
-      if (email) {
-        copiarTexto(mensagemEmail(empresasAtuais[Number(email.dataset.email)]), "Mensagem de e-mail copiada.");
         return;
       }
 
