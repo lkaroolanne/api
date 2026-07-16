@@ -223,7 +223,7 @@
     const mensagemApiPadrao = API_URL
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
-    const ATUALIZACOES_SIMULTANEAS = 20;
+    const ATUALIZACOES_SIMULTANEAS = 50;
     const INTERVALO_CNPJA_COMERCIAL_MS = 0;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
     const LIMITE_CNAE_TELA = 10000;
@@ -238,14 +238,18 @@
         itens: [
           { valor: "4744001", nome: "Varejo de Ferragens e Ferramentas" },
           { valor: "4672900", nome: "Atacado de Ferragens e Ferramentas" },
-          { valor: "4663000", nome: "Atacado de Maquinas e Equipamentos Industriais" },
+          { valor: "4663000", nome: "Atacado de Maquinas e Equipamentos para Uso Industrial" },
           { valor: "4669999", nome: "Atacado de Outras Maquinas e Equipamentos" },
-          { valor: "4684299", nome: "Atacado de Quimicos e Gases Industriais" },
+          { valor: "4684299", nome: "Atacado de Produtos Quimicos e Petroquimicos" },
           { valor: "4673700", nome: "Atacado de Material Eletrico" },
           { valor: "4679699", nome: "Atacado de Materiais de Construcao" },
           { valor: "4742300", nome: "Varejo de Material Eletrico" },
           { valor: "4744003", nome: "Varejo de Materiais Hidraulicos" },
           { valor: "4744099", nome: "Varejo de Materiais de Construcao" },
+          { valor: "4789099", nome: "Varejo de Outros Produtos" },
+          { valor: "3314710", nome: "Manutencao de Maquinas e Equipamentos Industriais" },
+          { valor: "7739099", nome: "Aluguel de Maquinas e Equipamentos Industriais" },
+          { valor: "4759899", nome: "Varejo de Equipamentos e Acessorios Diversos" },
           { valor: "4784900", nome: "Varejo de Gas e Cilindros GLP" },
           { valor: "4662100", nome: "Maquinas para Construcao e Mineracao" },
           { valor: "4661300", nome: "Maquinas e Equipamentos Agropecuarios" },
@@ -1131,7 +1135,7 @@
         : `${API_URL}/empresas/busca/exportar?termo=${encodeURIComponent(buscaAtual.valor)}`;
     }
 
-    function aplicarDadosAtualizados(index, empresaAtualizada) {
+    function aplicarDadosAtualizados(index, empresaAtualizada, opcoes = {}) {
       if (!empresasAtuais[index]) {
         return;
       }
@@ -1144,11 +1148,22 @@
       };
       empresasAtuais[index] = enriquecerEmpresa(empresasAtuais[index]);
       botaoExportar.disabled = !todosCnpjsConferidos();
-      aplicarFiltrosERenderizar();
+      if (opcoes.renderizar !== false) {
+        aplicarFiltrosERenderizar();
+      }
     }
 
     function todosCnpjsConferidos() {
       return Boolean(empresasAtuais.length) && empresasAtuais.every(situacaoConferidaApi);
+    }
+
+    function proximaLetraRazaoSocial() {
+      const letras = Array.from(letrasRazao.querySelectorAll("[data-letra]"))
+        .map((botao) => botao.dataset.letra)
+        .filter(Boolean);
+      const indiceAtual = letras.indexOf(buscaAtual.letra || "A");
+
+      return indiceAtual >= 0 ? letras[indiceAtual + 1] : "";
     }
 
     function iniciarAtualizacaoAutomaticaCnpja() {
@@ -1182,7 +1197,7 @@
       });
     }
 
-    async function atualizarCnpj(index) {
+    async function atualizarCnpj(index, opcoes = {}) {
       const empresa = empresasAtuais[index];
       const cnpj = limparNumeros(empresa?.cnpj);
 
@@ -1205,14 +1220,18 @@
           throw new Error(dados.mensagem || "Falha ao atualizar CNPJ.");
         }
 
-        aplicarDadosAtualizados(index, dados.empresa);
+        aplicarDadosAtualizados(index, dados.empresa, opcoes);
 
         if (botao) {
           botao.textContent = "OK";
           botao.title = "Atualizado pela API";
         }
-        mensagem.textContent = "Lead enriquecido pela API.";
-        carregarStatusCnpja();
+        if (opcoes.mostrarMensagem !== false) {
+          mensagem.textContent = "Lead enriquecido pela API.";
+        }
+        if (opcoes.atualizarStatus !== false) {
+          carregarStatusCnpja();
+        }
 
         return true;
       } catch (error) {
@@ -1554,7 +1573,11 @@
           const index = indicesPendentes[proximoIndex];
           proximoIndex += 1;
 
-          const ok = await atualizarCnpj(index);
+          const ok = await atualizarCnpj(index, {
+            renderizar: false,
+            atualizarStatus: false,
+            mostrarMensagem: false
+          });
           atualizados += ok ? 1 : 0;
           processados += 1;
           mensagem.textContent = statusCnpja.comercial
@@ -1571,6 +1594,8 @@
       );
 
       await Promise.all(trabalhadores);
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      aplicarFiltrosERenderizar();
 
       if (atualizados !== totalPendentes || !todosCnpjsConferidos()) {
         mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${totalPendentes} pendente(s). A planilha so sera liberada quando todos forem conferidos pela API.`;
@@ -1587,6 +1612,16 @@
       botaoAtualizarLote.disabled = false;
       botaoAtualizarLote.textContent = "Atualizar tudo";
       botaoExportar.disabled = !todosCnpjsConferidos();
+
+      const proximaLetra = buscaAtual.tipo === "cnae" ? proximaLetraRazaoSocial() : "";
+      if (proximaLetra && window.confirm(`Letra ${buscaAtual.letra} finalizada. Ir para a letra ${proximaLetra} e atualizar tambem?`)) {
+        await executarBusca(buscaAtual.valor, "cnae", proximaLetra);
+        window.setTimeout(() => {
+          if (!botaoAtualizarLote.disabled) {
+            botaoAtualizarLote.click();
+          }
+        }, 400);
+      }
     });
 
     function nomeArquivoExportacao() {
