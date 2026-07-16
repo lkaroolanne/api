@@ -61,15 +61,15 @@
       </div>
     </section>
 
-    <div class="workspace">
-      <aside class="sidebar" aria-labelledby="titulo-atalhos">
-        <div class="sidebar-head">
-          <p class="eyebrow">Atalhos</p>
-          <h2 id="titulo-atalhos">Solda e industria</h2>
-        </div>
-        <div id="lista-atalhos" class="shortcut-list"></div>
-      </aside>
+    <aside class="sidebar" aria-labelledby="titulo-atalhos">
+      <div class="sidebar-head">
+        <p class="eyebrow">Atalhos</p>
+        <h2 id="titulo-atalhos">Solda e industria</h2>
+      </div>
+      <div id="lista-atalhos" class="shortcut-list"></div>
+    </aside>
 
+    <div class="workspace">
       <section class="content-area">
         <section class="results-panel" id="painel-resultados">
           <div class="results-header">
@@ -206,6 +206,7 @@
               <thead>
                 <tr>
                   <th>CNPJ</th>
+                  <th>Situacao</th>
                   <th>Empresa</th>
                   <th>Fantasia</th>
                   <th>Tags</th>
@@ -965,7 +966,7 @@
       empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
-      const colspan = 11;
+      const colspan = 12;
 
       atualizarResumoExecutivo();
       barraComercial.hidden = !empresasAtuais.length;
@@ -989,10 +990,14 @@
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : "";
+          const situacaoTabela = lead.situacaoComercial?.bloqueada
+            ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
+            : `<span class="status-badge">${escaparHtml(lead.situacaoComercial?.label || lead.situacao || "Ativa")}</span>`;
           const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           return `
             <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""} ${lead.situacaoComercial?.bloqueada ? "lead-problem-row" : ""}" data-index="${index}">
               <td data-label="CNPJ">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>
+              <td data-label="Situacao">${situacaoTabela}</td>
               <td data-label="Empresa" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
               <td data-label="Fantasia" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
               <td data-label="Tags">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
@@ -1062,6 +1067,7 @@
         const dados = await buscarJson(`${API_URL}/empresas/cnpja/status`);
         cnpjaStatus.textContent = textoStatusCnpja(dados.cnpja);
         cnpjaStatus.hidden = !cnpjaStatus.textContent;
+        return dados.cnpja;
       } catch (error) {
         cnpjaStatus.textContent = "CNPJÁ: nao foi possivel verificar o token agora.";
       }
@@ -1419,7 +1425,7 @@
         const novos = empresasVisiveis.filter((lead) => !lead.baseVortechMatch).length;
         mensagem.textContent = `Base carregada com ${formatarNumero(registros.length)} cliente(s). ${formatarNumero(repetidos)} repetido(s) encontrados por CNPJ, raiz do CNPJ ou nome. A exportacao vai sair com ${formatarNumero(novos)} empresa(s) nova(s).`;
       } catch (error) {
-        mensagem.textContent = error.message;
+        mensagem.textContent = `Falha ao exportar Excel: ${error.message}`;
       } finally {
         baseVortechImportar.disabled = false;
       }
@@ -1443,6 +1449,14 @@
 
       if (!total) {
         mensagem.textContent = "Faça uma busca antes de exportar pela CNPJÁ.";
+        return;
+      }
+
+      const statusCnpja = await carregarStatusCnpja();
+      if (!statusCnpja?.configurado) {
+        mensagem.textContent = "CNPJÁ nao configurado no Render. Configure CNPJA_API_KEY para atualizar em massa.";
+        cnpjaStatus.textContent = "CNPJÁ: CNPJA_API_KEY nao configurado no Render.";
+        cnpjaStatus.hidden = false;
         return;
       }
 
@@ -1475,7 +1489,11 @@
 
       mensagem.textContent = `CNPJÁ finalizou ${atualizados} de ${total} CNPJ(s). Baixando planilha atualizada...`;
       await carregarStatusCnpja();
-      await exportarVisiveis();
+      try {
+        await exportarVisiveis();
+      } catch (error) {
+        mensagem.textContent = `CNPJÁ atualizou ${atualizados} CNPJ(s), mas a exportacao falhou: ${error.message}`;
+      }
       botaoAtualizarLote.disabled = false;
       botaoAtualizarLote.textContent = "CNPJÁ";
       botaoExportar.disabled = !buscaAtual.valor;

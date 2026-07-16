@@ -193,18 +193,11 @@ body::before {
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(360px, 22vw, 420px);
-  gap: 16px;
-  align-items: start;
+  display: block;
 }
 
 .content-area {
-  order: 1;
-}
-
-.sidebar {
-  order: 2;
+  width: 100%;
 }
 
 .sidebar,
@@ -219,15 +212,13 @@ body::before {
 }
 
 .sidebar {
-  position: sticky;
-  top: 12px;
-  max-height: calc(100vh - 24px);
+  margin-bottom: 18px;
   overflow: hidden;
   background: var(--panel);
 }
 
 .sidebar-head {
-  padding: 18px 20px;
+  padding: 16px 20px 10px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -249,11 +240,10 @@ h2 {
 .shortcut-list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  max-height: calc(100vh - 144px);
-  overflow-y: auto;
+  gap: 12px;
+  max-height: none;
+  overflow: visible;
   padding: 14px;
-  scrollbar-color: var(--accent) #111111;
 }
 
 .shortcut-group {
@@ -274,18 +264,19 @@ h2 {
 
 .shortcut-buttons {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 9px;
 }
 
 .cnae-chip {
   display: flex;
-  min-height: 64px;
+  min-height: 58px;
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
   border: 1px solid rgba(246, 217, 0, 0.22);
   border-radius: 6px;
-  padding: 12px;
+  padding: 10px 12px;
   background:
     linear-gradient(135deg, rgba(246, 217, 0, 0.08), transparent 42%),
     #1a1a1a;
@@ -953,6 +944,7 @@ td:first-child {
 .contact-badge,
 .enrich-badge,
 .base-match-badge,
+.status-badge,
 .problem-badge {
   display: inline-flex;
   align-items: center;
@@ -982,6 +974,7 @@ td:first-child {
 .score-stack .contact-badge,
 .score-stack .enrich-badge,
 .score-stack .base-match-badge,
+.score-stack .status-badge,
 .score-stack .problem-badge {
   margin-top: 0;
   max-width: 100%;
@@ -1038,6 +1031,12 @@ td:first-child {
   border: 1px solid rgba(255, 177, 92, 0.4);
   background: rgba(255, 177, 92, 0.13);
   color: #ffd3a1;
+}
+
+.status-badge {
+  border: 1px solid rgba(120, 217, 163, 0.3);
+  background: rgba(120, 217, 163, 0.11);
+  color: #c9f5d9;
 }
 
 .problem-badge {
@@ -1137,26 +1136,8 @@ td:first-child {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .content-area {
-    order: 2;
-  }
-
-  .sidebar {
-    order: 1;
-  }
-
-  .sidebar {
-    position: static;
-    max-height: none;
-  }
-
   .shortcut-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    max-height: 320px;
   }
 
   .shortcut-buttons {
@@ -1239,7 +1220,6 @@ td:first-child {
 
   .shortcut-list {
     grid-template-columns: 1fr;
-    max-height: 300px;
   }
 
   .input-row {
