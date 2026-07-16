@@ -239,7 +239,7 @@ h2 {
 
 .shortcut-list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
   max-height: none;
   overflow: visible;
@@ -1133,10 +1133,6 @@ td:first-child {
   }
 
   .command-strip {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .shortcut-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
