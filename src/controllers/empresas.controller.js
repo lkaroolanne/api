@@ -112,6 +112,18 @@ const LIMITE_BUSCA_TERMO = lerLimiteEnv("LIMITE_BUSCA_TERMO", 1500);
 const LIMITE_CNAE_TELA = lerLimiteEnv("LIMITE_CNAE_TELA", 1500);
 const LIMITE_MAXIMO_TELA = lerLimiteEnv("LIMITE_MAXIMO_TELA", 3000);
 const ARQUIVO_BASE_VORTECH = path.resolve(process.cwd(), "data", "base-vortech.xlsx");
+const SITUACOES_RECEITA = {
+  "01": "Nula",
+  "1": "Nula",
+  "02": "Ativa",
+  "2": "Ativa",
+  "03": "Suspensa",
+  "3": "Suspensa",
+  "04": "Inapta",
+  "4": "Inapta",
+  "08": "Baixada",
+  "8": "Baixada"
+};
 
 let cacheBaseVortech = {
   mtimeMs: 0,
@@ -120,10 +132,21 @@ let cacheBaseVortech = {
 
 const CAMPOS_LISTA_PROSPECTS = {
   cnpj: true,
+  cnpjBasico: true,
   razaoSocial: true,
   nomeFantasia: true,
+  situacao: true,
+  porteEmpresa: true,
+  naturezaJuridica: true,
+  capitalSocial: true,
   cnaePrincipal: true,
   cnaeSecundarios: true,
+  tipoLogradouro: true,
+  logradouro: true,
+  numero: true,
+  complemento: true,
+  bairro: true,
+  cep: true,
   uf: true,
   municipioCodigo: true,
   telefone1: true,
@@ -333,15 +356,43 @@ function existeNaBaseCliente(empresa, indice) {
   return false;
 }
 
+async function completarEmpresasParaExportacao(empresas = []) {
+  const cnpjs = empresas
+    .map((empresa) => limparNumerosBase(empresa?.cnpj))
+    .filter(Boolean);
+
+  if (!cnpjs.length) return empresas;
+
+  const registrosCompletos = await prisma.receitaProspect.findMany({
+    where: {
+      cnpj: {
+        in: cnpjs
+      }
+    }
+  });
+  const porCnpj = new Map(registrosCompletos.map((empresa) => [limparNumerosBase(empresa.cnpj), empresa]));
+
+  return empresas.map((empresa) => {
+    const cnpj = limparNumerosBase(empresa?.cnpj);
+    return {
+      ...(porCnpj.get(cnpj) || {}),
+      ...empresa
+    };
+  });
+}
+
 function situacaoBloqueiaVenda(empresa) {
   const valorOriginal = String(empresa?.situacao || empresa?.status || empresa?.situacaoCadastral || "").trim();
   const valor = normalizarTexto(valorOriginal);
+  const codigo = limparNumerosBase(valorOriginal);
 
   if (!valor) return false;
-  if (["02", "2", "ativa", "ativo"].includes(valor)) return false;
+  if (SITUACOES_RECEITA[valorOriginal] === "Ativa" || SITUACOES_RECEITA[codigo] === "Ativa") return false;
+  if (SITUACOES_RECEITA[valorOriginal] || SITUACOES_RECEITA[codigo]) return true;
+  if (["ativa", "ativo"].includes(valor)) return false;
   if (/baix|inativ|inapt|suspens|nul|cancel|encerr|irregular/.test(valor)) return true;
 
-  return /^\d+$/.test(valor) && valor !== "02" && valor !== "2";
+  return /^\d+$/.test(codigo) && codigo !== "02" && codigo !== "2";
 }
 
 function textoEmpresa(empresa) {
@@ -893,7 +944,7 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     const indiceClientes = montarIndiceClientesBase(baseVortech);
 
     if (empresasRecebidas.length) {
-      empresas = empresasRecebidas;
+      empresas = await completarEmpresasParaExportacao(empresasRecebidas);
       totalEncontrado = empresas.length;
       empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
     } else if (busca.tipo === "cnae") {

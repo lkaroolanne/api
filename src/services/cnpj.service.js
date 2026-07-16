@@ -23,6 +23,18 @@ const CAMPOS_LIMITE_CNPJA = [
   "x-tokens-limit",
   "x-token-limit"
 ];
+const SITUACOES_RECEITA = {
+  "01": "Nula",
+  "1": "Nula",
+  "02": "Ativa",
+  "2": "Ativa",
+  "03": "Suspensa",
+  "3": "Suspensa",
+  "04": "Inapta",
+  "4": "Inapta",
+  "08": "Baixada",
+  "8": "Baixada"
+};
 
 let ultimoStatusCnpja = {
   configurado: true,
@@ -65,6 +77,12 @@ function enderecoCompleto(address = {}) {
 
 function normalizarCnae(valor) {
   return String(valor || "").replace(/\D/g, "");
+}
+
+function textoSituacaoCnpja(status = {}) {
+  const texto = status?.text || status?.name || status?.description;
+  const id = status?.id === undefined || status?.id === null ? "" : String(status.id);
+  return texto || SITUACOES_RECEITA[id.padStart(2, "0")] || SITUACOES_RECEITA[id] || null;
 }
 
 function primeiroHeader(headers, nomes) {
@@ -112,7 +130,7 @@ function mapearCnpja(data) {
     cnpj: limparCnpj(data.taxId),
     razaoSocial: data.company?.name || null,
     nomeFantasia: data.alias || null,
-    situacao: data.status?.text || null,
+    situacao: textoSituacaoCnpja(data.status),
     porte: data.company?.size?.text || data.company?.size?.acronym || null,
     cnaePrincipal,
     cnaeDescricao: data.mainActivity?.text || null,

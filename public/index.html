@@ -183,24 +183,6 @@
             </div>
           </div>
 
-          <div class="solution-strip" id="solution-strip" hidden>
-            <div class="solution-card is-hot">
-              <span>Prioridade</span>
-              <strong id="solucao-prioridade">-</strong>
-              <small id="solucao-detalhe">Aguardando consulta</small>
-            </div>
-            <div class="solution-card">
-              <span>Melhor acao</span>
-              <strong id="solucao-acao">-</strong>
-              <small id="solucao-canal">Canal recomendado aparece aqui</small>
-            </div>
-            <div class="solution-card">
-              <span>Base acionavel</span>
-              <strong id="solucao-contatos">-</strong>
-              <small>Empresas com telefone ou e-mail</small>
-            </div>
-          </div>
-
           <div class="table-wrap">
             <table>
               <thead>
@@ -318,12 +300,6 @@
     const metricaStatus = $("#metrica-status");
     const metricaTelefone = $("#metrica-telefone");
     const metricaEmail = $("#metrica-email");
-    const solutionStrip = $("#solution-strip");
-    const solucaoPrioridade = $("#solucao-prioridade");
-    const solucaoDetalhe = $("#solucao-detalhe");
-    const solucaoAcao = $("#solucao-acao");
-    const solucaoCanal = $("#solucao-canal");
-    const solucaoContatos = $("#solucao-contatos");
     const paginacao = $("#paginacao");
     const paginaInfo = $("#pagina-info");
     const paginaRange = $("#pagina-range");
@@ -347,7 +323,8 @@
     const STORAGE_KEYS = {
       favoritos: "vortech.favoritos",
       baseVortech: "vortech.baseVortech",
-      colunasTabela: "vortech.colunasTabela"
+      colunasTabela: "vortech.colunasTabela",
+      ordemColunasTabela: "vortech.ordemColunasTabela"
     };
 
     const COLUNAS_PADRAO = {
@@ -363,6 +340,19 @@
       email: "Email",
       acao: "Acao",
       api: "API"
+    };
+    const ORDEM_COLUNAS_PADRAO = Object.keys(COLUNAS_PADRAO);
+    const SITUACOES_RECEITA = {
+      "01": "Nula",
+      "1": "Nula",
+      "02": "Ativa",
+      "2": "Ativa",
+      "03": "Suspensa",
+      "3": "Suspensa",
+      "04": "Inapta",
+      "4": "Inapta",
+      "08": "Baixada",
+      "8": "Baixada"
     };
 
     const TERMOS_SCORE = ["solda", "soldagem", "ferramentas", "ferragens", "gases", "maquinas", "maquina", "inversora", "mig", "tig", "eletrodo", "distribuidor", "revenda", "industrial"];
@@ -394,6 +384,8 @@
       ...COLUNAS_PADRAO,
       ...lerJsonLocal(STORAGE_KEYS.colunasTabela, {})
     };
+    let ordemColunas = normalizarOrdemColunas(lerJsonLocal(STORAGE_KEYS.ordemColunasTabela, []));
+    let colunaArrastada = "";
 
     mensagem.textContent = mensagemApiPadrao;
 
@@ -424,13 +416,34 @@
       return colunasTabela[chave] || COLUNAS_PADRAO[chave] || chave;
     }
 
+    function normalizarOrdemColunas(ordem) {
+      const recebidas = Array.isArray(ordem) ? ordem : [];
+      const validas = recebidas.filter((chave, index) => ORDEM_COLUNAS_PADRAO.includes(chave) && recebidas.indexOf(chave) === index);
+      return [
+        ...validas,
+        ...ORDEM_COLUNAS_PADRAO.filter((chave) => !validas.includes(chave))
+      ];
+    }
+
+    function colunasOrdenadas() {
+      ordemColunas = normalizarOrdemColunas(ordemColunas);
+      return ordemColunas;
+    }
+
     function aplicarTitulosTabela() {
+      const linhaCabecalho = document.querySelector("thead tr");
+      colunasOrdenadas().forEach((chave) => {
+        const th = linhaCabecalho?.querySelector(`th[data-coluna="${chave}"]`);
+        if (th) linhaCabecalho.appendChild(th);
+      });
+
       document.querySelectorAll("th[data-coluna]").forEach((th) => {
         const chave = th.dataset.coluna;
         th.textContent = tituloColuna(chave);
         th.contentEditable = "true";
+        th.draggable = true;
         th.spellcheck = false;
-        th.title = "Clique para editar o titulo da coluna";
+        th.title = "Clique para editar o titulo ou arraste para mudar a ordem";
       });
     }
 
@@ -441,6 +454,21 @@
       const valor = th.textContent.trim() || COLUNAS_PADRAO[chave] || chave;
       colunasTabela[chave] = valor;
       salvarLocal(STORAGE_KEYS.colunasTabela, colunasTabela);
+      aplicarTitulosTabela();
+
+      if (empresasAtuais.length) {
+        aplicarFiltrosERenderizar();
+      }
+    }
+
+    function moverColuna(destino, inserirDepois) {
+      if (!colunaArrastada || !destino || colunaArrastada === destino) return;
+
+      const novaOrdem = colunasOrdenadas().filter((chave) => chave !== colunaArrastada);
+      const indiceDestino = novaOrdem.indexOf(destino);
+      novaOrdem.splice(indiceDestino + (inserirDepois ? 1 : 0), 0, colunaArrastada);
+      ordemColunas = novaOrdem;
+      salvarLocal(STORAGE_KEYS.ordemColunasTabela, ordemColunas);
       aplicarTitulosTabela();
 
       if (empresasAtuais.length) {
@@ -587,9 +615,14 @@
     function situacaoComercial(empresa) {
       const valorOriginal = String(empresa.situacao || empresa.status || empresa.situacaoCadastral || "").trim();
       const valor = normalizarTexto(valorOriginal);
+      const codigo = limparNumeros(valorOriginal);
 
-      if (!valor) return { bloqueada: false, label: "" };
-      if (["02", "2", "ativa", "ativo"].includes(valor)) return { bloqueada: false, label: "Ativa" };
+      if (!valor) return { bloqueada: false, label: "Nao informada" };
+      if (SITUACOES_RECEITA[valorOriginal] === "Ativa" || SITUACOES_RECEITA[codigo] === "Ativa") return { bloqueada: false, label: "Ativa" };
+      if (SITUACOES_RECEITA[valorOriginal] || SITUACOES_RECEITA[codigo]) {
+        return { bloqueada: true, label: SITUACOES_RECEITA[valorOriginal] || SITUACOES_RECEITA[codigo] };
+      }
+      if (["ativa", "ativo"].includes(valor)) return { bloqueada: false, label: "Ativa" };
 
       const problemas = [
         ["baix", "Baixada"],
@@ -604,7 +637,7 @@
       const problema = problemas.find(([chave]) => valor.includes(chave));
 
       if (problema) return { bloqueada: true, label: problema[1] };
-      if (/^\d+$/.test(valor) && valor !== "02" && valor !== "2") return { bloqueada: true, label: `Situacao ${valorOriginal}` };
+      if (/^\d+$/.test(codigo) && codigo !== "02" && codigo !== "2") return { bloqueada: true, label: `Situacao ${valorOriginal}` };
 
       return { bloqueada: false, label: valorOriginal };
     }
@@ -748,48 +781,6 @@
 
     function escaparAtributo(valor) {
       return escaparHtml(valor).replaceAll("\n", " ");
-    }
-
-
-    function atualizarSolucao(empresas, total) {
-      const lista = Array.isArray(empresas) ? empresas : [];
-      const comTelefone = lista.filter(temTelefone).length;
-      const comEmail = lista.filter(temEmail).length;
-      const acionaveis = lista.filter((empresa) => temTelefone(empresa) || temEmail(empresa)).length;
-      const baseComparacao = Math.max(lista.length, 1);
-      const taxaAcionavel = Math.round((acionaveis / baseComparacao) * 100);
-
-      solutionStrip.hidden = false;
-      solucaoContatos.textContent = `${formatarNumero(acionaveis)} / ${formatarNumero(lista.length)}`;
-
-      if (!total) {
-        solucaoPrioridade.textContent = "Sem leads";
-        solucaoDetalhe.textContent = "Ajuste o CNAE ou tente uma palavra-chave mais ampla";
-        solucaoAcao.textContent = "Nova busca";
-        solucaoCanal.textContent = "Use os atalhos laterais para acelerar a consulta";
-        return;
-      }
-
-      if (taxaAcionavel >= 70 && comTelefone >= comEmail) {
-        solucaoPrioridade.textContent = "Alta";
-        solucaoDetalhe.textContent = `${taxaAcionavel}% da amostra tem contato direto`;
-        solucaoAcao.textContent = "Ligar primeiro";
-        solucaoCanal.textContent = "Telefone disponivel para abordagem comercial";
-        return;
-      }
-
-      if (taxaAcionavel >= 45 || comEmail > comTelefone) {
-        solucaoPrioridade.textContent = "Media";
-        solucaoDetalhe.textContent = `${taxaAcionavel}% da amostra esta acionavel`;
-        solucaoAcao.textContent = "Campanha segmentada";
-        solucaoCanal.textContent = comEmail ? "E-mail e telefone como reforco" : "Telefone como canal principal";
-        return;
-      }
-
-      solucaoPrioridade.textContent = "Enriquecer";
-      solucaoDetalhe.textContent = "Poucos contatos completos nesta pagina";
-      solucaoAcao.textContent = "Atualizar pela API";
-      solucaoCanal.textContent = "Use Atualizar Tudo antes da exportacao";
     }
 
     function atualizarPaginacao(dados) {
@@ -1041,22 +1032,25 @@
             : "";
           const situacaoTabela = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
-            : `<span class="status-badge">${escaparHtml(lead.situacaoComercial?.label || lead.situacao || "Ativa")}</span>`;
+            : `<span class="status-badge">${escaparHtml(lead.situacaoComercial?.label || lead.situacao || "Nao informada")}</span>`;
           const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
+          const celulas = {
+            cnpj: `<td data-coluna="cnpj" data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>`,
+            situacao: `<td data-coluna="situacao" data-label="${escaparAtributo(tituloColuna("situacao"))}">${situacaoTabela}</td>`,
+            empresa: `<td data-coluna="empresa" data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>`,
+            fantasia: `<td data-coluna="fantasia" data-label="${escaparAtributo(tituloColuna("fantasia"))}" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>`,
+            tags: `<td data-coluna="tags" data-label="${escaparAtributo(tituloColuna("tags"))}">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>`,
+            cnae: `<td data-coluna="cnae" data-label="${escaparAtributo(tituloColuna("cnae"))}" data-campo="cnaePrincipal">${escaparHtml(lead.cnaePrincipal)}</td>`,
+            uf: `<td data-coluna="uf" data-label="${escaparAtributo(tituloColuna("uf"))}" data-campo="uf">${escaparHtml(lead.ufComercial)}</td>`,
+            cidade: `<td data-coluna="cidade" data-label="${escaparAtributo(tituloColuna("cidade"))}" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>`,
+            telefone: `<td data-coluna="telefone" data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>`,
+            email: `<td data-coluna="email" data-label="${escaparAtributo(tituloColuna("email"))}" data-campo="email">${escaparHtml(lead.email)}</td>`,
+            acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>`,
+            api: `<td data-coluna="api" data-label="${escaparAtributo(tituloColuna("api"))}"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>`
+          };
           return `
             <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""} ${lead.situacaoComercial?.bloqueada ? "lead-problem-row" : ""}" data-index="${index}">
-              <td data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>
-              <td data-label="${escaparAtributo(tituloColuna("situacao"))}">${situacaoTabela}</td>
-              <td data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("fantasia"))}" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("tags"))}">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>
-              <td data-label="${escaparAtributo(tituloColuna("cnae"))}" data-campo="cnaePrincipal">${escaparHtml(lead.cnaePrincipal)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("uf"))}" data-campo="uf">${escaparHtml(lead.ufComercial)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("cidade"))}" data-campo="cidade">${escaparHtml(lead.cidadeComercial)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("email"))}" data-campo="email">${escaparHtml(lead.email)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>
-              <td data-label="${escaparAtributo(tituloColuna("api"))}"><button class="mini-button" type="button" data-atualizar="${index}">Atualizar</button></td>
+              ${colunasOrdenadas().map((chave) => celulas[chave] || "").join("")}
             </tr>
           `;
         }).join("");
@@ -1361,7 +1355,6 @@
           : `${formatarNumero(exibidos)} lead(s) carregados.`;
 
         atualizarPaginacao(dados);
-        atualizarSolucao(dados.empresas || [], dados.total);
         botaoExportar.disabled = false;
         botaoAtualizarLote.disabled = !dados.empresas?.length;
         renderizarLinhas(dados.empresas || []);
@@ -1370,7 +1363,6 @@
         empresasAtuais = [];
         empresasVisiveis = [];
         paginacao.hidden = true;
-        solutionStrip.hidden = true;
         barraComercial.hidden = true;
         gradeExecutiva.hidden = true;
         dailyList.hidden = true;
@@ -1690,7 +1682,6 @@
       botaoExportar.disabled = true;
       botaoAtualizarLote.disabled = true;
       paginacao.hidden = true;
-      solutionStrip.hidden = true;
       barraComercial.hidden = true;
       gradeExecutiva.hidden = true;
       dailyList.hidden = true;
@@ -1709,6 +1700,31 @@
           event.preventDefault();
           th.blur();
         }
+      });
+      th.addEventListener("dragstart", () => {
+        colunaArrastada = th.dataset.coluna;
+        th.classList.add("is-dragging");
+      });
+      th.addEventListener("dragend", () => {
+        colunaArrastada = "";
+        th.classList.remove("is-dragging");
+        document.querySelectorAll("th[data-coluna]").forEach((coluna) => coluna.classList.remove("is-drop-target"));
+      });
+      th.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        if (colunaArrastada && colunaArrastada !== th.dataset.coluna) {
+          th.classList.add("is-drop-target");
+        }
+      });
+      th.addEventListener("dragleave", () => {
+        th.classList.remove("is-drop-target");
+      });
+      th.addEventListener("drop", (event) => {
+        event.preventDefault();
+        th.classList.remove("is-drop-target");
+        const caixa = th.getBoundingClientRect();
+        const inserirDepois = event.clientX > caixa.left + caixa.width / 2;
+        moverColuna(th.dataset.coluna, inserirDepois);
       });
     });
 
