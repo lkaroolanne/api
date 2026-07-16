@@ -824,10 +824,15 @@ export async function listarEmpresasPorCnae(req, res) {
   try {
     const cnae = String(req.params.cnae || "").replace(/\D/g, "");
     const limiteSolicitado = Number.parseInt(req.query.limite, 10);
+    const paginaSolicitada = Number.parseInt(req.query.pagina, 10);
     const letra = normalizarLetraRazao(req.query.letra);
     const limite = Number.isFinite(limiteSolicitado)
       ? Math.min(Math.max(limiteSolicitado, 1), LIMITE_MAXIMO_TELA)
       : LIMITE_CNAE_TELA;
+    const pagina = Number.isFinite(paginaSolicitada)
+      ? Math.max(paginaSolicitada, 1)
+      : 1;
+    const skip = (pagina - 1) * limite;
 
     if (!cnae) {
       return res.status(400).json({
@@ -852,9 +857,11 @@ export async function listarEmpresasPorCnae(req, res) {
           { nomeFantasia: "asc" },
           { cnpj: "asc" }
         ],
+        skip,
         take: limite
       })
     ]);
+    const totalPaginas = Math.max(Math.ceil(totalLetra / limite), 1);
 
     return res.json({
       sucesso: true,
@@ -863,6 +870,10 @@ export async function listarEmpresasPorCnae(req, res) {
       totalLetra,
       exibidos: empresas.length,
       limite,
+      pagina,
+      totalPaginas,
+      inicio: totalLetra ? skip + 1 : 0,
+      fim: skip + empresas.length,
       letra,
       letras: [...LETRAS_RAZAO_SOCIAL, LETRA_NUMEROS],
       parcial: totalLetra > empresas.length,
@@ -996,15 +1007,6 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     if (empresasRecebidas.length) {
       empresas = await completarEmpresasParaExportacao(empresasRecebidas);
       totalEncontrado = empresas.length;
-      const naoConferidas = empresas.filter((empresa) => !foiConferidaNaApiCnpj(empresa));
-
-      if (naoConferidas.length) {
-        return res.status(400).json({
-          sucesso: false,
-          mensagem: `Antes de exportar, clique em Atualizar tudo para conferir a situação atual na API. Faltam ${naoConferidas.length} empresa(s) desta letra.`
-        });
-      }
-
       empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
     } else if (busca.tipo === "cnae") {
       const cnae = String(busca.valor || "").replace(/\D/g, "");

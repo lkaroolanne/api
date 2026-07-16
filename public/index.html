@@ -223,11 +223,9 @@
     const ATUALIZACOES_SIMULTANEAS = 50;
     const INTERVALO_CNPJA_COMERCIAL_MS = 0;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
-    const LIMITE_CNAE_TELA = 1500;
+    const LIMITE_CNAE_TELA = 10000;
     const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
-    const MINIMO_CNAE_ATALHO = 500;
-
     const atalhos = [
       {
         titulo: "CNAEs",
@@ -783,7 +781,7 @@
 
       paginacao.hidden = false;
       paginaInfo.textContent = `Razao social: ${letraAtual}`;
-      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)}. Mostrando ${formatarNumero(dados.inicio || 0)} a ${formatarNumero(dados.fim || 0)} de ${formatarNumero(dados.totalLetra || dados.exibidos || 0)} em ${letraAtual}. Total do CNAE: ${formatarNumero(dados.total)}.`;
+      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)}. ${formatarNumero(dados.exibidos || 0)} exibida(s) de ${formatarNumero(dados.totalLetra || dados.exibidos || 0)} em ${letraAtual}. Total do CNAE: ${formatarNumero(dados.total)}.`;
       letrasRazao.innerHTML = letras.map((letra) => `
         <button
           class="letter-button ${letra === letraAtual ? "is-active" : ""}"
@@ -793,14 +791,12 @@
       `).join("");
       paginasLetra.innerHTML = Array.from({ length: dados.totalPaginas || 1 }, (_, indice) => {
         const pagina = indice + 1;
-        const inicio = indice * (dados.limite || LIMITE_CNAE_TELA) + 1;
-        const fim = Math.min((indice + 1) * (dados.limite || LIMITE_CNAE_TELA), dados.totalLetra || 0);
         return `
           <button
             class="letter-button ${pagina === (dados.pagina || 1) ? "is-active" : ""}"
             type="button"
             data-pagina="${pagina}"
-          >${pagina} <span>${formatarNumero(inicio)}-${formatarNumero(fim)}</span></button>
+          >${pagina}</button>
         `;
       }).join("");
     }
@@ -886,9 +882,7 @@
               const valor = typeof item === "string" ? item : item.valor;
               const nome = typeof item === "string" ? item : item.nome;
               const codigo = typeof item === "string" ? "" : `<strong>${item.valor}</strong>`;
-              const total = typeof item === "string" || item.total === undefined
-                ? ""
-                : `<em>${formatarNumero(item.total)} CNPJ(s)</em>`;
+              const total = "";
 
               return `
                 <button class="cnae-chip" type="button" data-tipo="${grupo.tipo}" data-valor="${escaparHtml(valor)}">
@@ -924,8 +918,6 @@
                     ...item,
                     total: dados.porCnae[item.valor] || 0
                   }))
-                  .filter((item) => item.total >= MINIMO_CNAE_ATALHO)
-                  .sort((a, b) => b.total - a.total)
               };
             }
 

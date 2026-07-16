@@ -743,15 +743,26 @@ button:disabled {
 }
 
 .pagination-actions,
-.letter-actions {
+.letter-actions,
+.page-actions {
   display: flex;
   gap: 8px;
   flex: 0 0 auto;
 }
 
-.letter-actions {
+.letter-actions,
+.page-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.page-actions {
+  flex-basis: 100%;
+  margin-top: 8px;
+}
+
+.page-actions .letter-button {
+  padding: 6px 10px;
 }
 
 .letter-button {
