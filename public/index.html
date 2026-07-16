@@ -341,7 +341,6 @@
 
     const STORAGE_KEYS = {
       favoritos: "vortech.favoritos",
-      historico: "vortech.historico",
       baseVortech: "vortech.baseVortech"
     };
 
@@ -384,7 +383,6 @@
     function carregarEstadoLocal() {
       return {
         favoritos: lerJsonLocal(STORAGE_KEYS.favoritos, {}),
-        historico: lerJsonLocal(STORAGE_KEYS.historico, []),
         baseVortech: lerJsonLocal(STORAGE_KEYS.baseVortech, [])
       };
     }
@@ -874,7 +872,6 @@
           </div>
         </section>
       `).join("");
-      renderizarHistorico();
     }
 
     async function atualizarAtalhosComDados() {
@@ -1169,43 +1166,6 @@
       }
     }
 
-    function salvarBuscaHistorico(valor, tipo) {
-      const registro = {
-        valor,
-        tipo,
-        data: new Date().toLocaleString("pt-BR")
-      };
-      estadoLocal.historico = [
-        registro,
-        ...estadoLocal.historico.filter((item) => !(item.valor === valor && item.tipo === tipo))
-      ].slice(0, 8);
-      salvarLocal(STORAGE_KEYS.historico, estadoLocal.historico);
-      renderizarHistorico();
-    }
-
-    function renderizarHistorico() {
-      const existente = document.querySelector("#historico-buscas");
-      if (existente) existente.remove();
-
-      const html = `
-        <section class="shortcut-group" id="historico-buscas">
-          <h3>Historico</h3>
-          <div class="shortcut-buttons">
-            ${estadoLocal.historico.length ? estadoLocal.historico.map((item) => `
-              <button class="cnae-chip history-chip" type="button" data-historico-tipo="${escaparAtributo(item.tipo)}" data-historico-valor="${escaparAtributo(item.valor)}">
-                <strong>${escaparHtml(item.tipo === "cnae" ? "CNAE" : "Termo")}</strong>
-                <span>${escaparHtml(item.valor)}</span>
-                <em>${escaparHtml(item.data)}</em>
-              </button>
-            `).join("") : '<p class="history-empty">Sem buscas recentes.</p>'}
-            <button id="limpar-historico" class="ghost-button compact-button" type="button">Limpar historico</button>
-            <button id="resetar-local" class="ghost-button compact-button" type="button">Resetar dados locais</button>
-          </div>
-        </section>
-      `;
-      listaAtalhos.insertAdjacentHTML("beforeend", html);
-    }
-
     function atualizarSugestoes() {
       const termo = normalizarTexto(inputBusca.value);
       const chave = Object.keys(sugestoesRelacionadas).find((item) => termo.includes(item));
@@ -1224,14 +1184,8 @@
 
     function atualizarStatusBaseVortech() {
       const total = estadoLocal.baseVortech.length;
-      const grupos = new Set(
-        estadoLocal.baseVortech
-          .map((item) => item.cnpjRaiz || raizCnpj(item.cnpj) || item.grupo || item.tipoCliente || item.tipo)
-          .filter(Boolean)
-      ).size;
-
       baseVortechStatus.textContent = total
-        ? `${formatarNumero(total)} cliente(s) carregados${grupos ? ` em ${formatarNumero(grupos)} grupo(s)` : ""}`
+        ? `${formatarNumero(total)} cliente(s) carregados`
         : "Nenhuma base carregada";
     }
 
@@ -1362,7 +1316,6 @@
         botaoExportar.disabled = false;
         botaoAtualizarLote.disabled = !dados.empresas?.length;
         renderizarLinhas(dados.empresas || []);
-        salvarBuscaHistorico(buscaAtual.valor, buscaAtual.tipo);
       } catch (error) {
         buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
         empresasAtuais = [];
@@ -1387,33 +1340,6 @@
     });
 
     listaAtalhos.addEventListener("click", (event) => {
-      const historico = event.target.closest("[data-historico-valor]");
-      if (historico) {
-        inputBusca.value = historico.dataset.historicoValor;
-        executarBusca(historico.dataset.historicoValor, historico.dataset.historicoTipo);
-        return;
-      }
-
-      if (event.target.closest("#limpar-historico")) {
-        estadoLocal.historico = [];
-        salvarLocal(STORAGE_KEYS.historico, estadoLocal.historico);
-        renderizarAtalhos();
-        mensagem.textContent = "Historico de buscas limpo.";
-        return;
-      }
-
-      if (event.target.closest("#resetar-local")) {
-        estadoLocal.favoritos = {};
-        estadoLocal.baseVortech = [];
-        salvarLocal(STORAGE_KEYS.favoritos, estadoLocal.favoritos);
-        salvarLocal(STORAGE_KEYS.baseVortech, estadoLocal.baseVortech);
-        indiceBaseVortech = montarIndiceBaseVortech([]);
-        atualizarStatusBaseVortech();
-        renderizarLinhas(empresasAtuais);
-        mensagem.textContent = "Base local resetada.";
-        return;
-      }
-
       const botao = event.target.closest("[data-valor]");
 
       if (!botao) {
@@ -1562,17 +1488,53 @@
 
       mensagem.textContent = `CNPJÁ finalizou ${atualizados} de ${total} CNPJ(s). Baixando planilha atualizada...`;
       await carregarStatusCnpja();
-      exportarVisiveis();
+      await exportarVisiveis();
       botaoAtualizarLote.disabled = false;
       botaoAtualizarLote.textContent = "CNPJÁ";
       botaoExportar.disabled = !buscaAtual.valor;
     });
 
-    function csvValor(valor) {
-      return `"${String(valor || "").replaceAll('"', '""')}"`;
+    function nomeArquivoExportacao() {
+      const data = new Date().toISOString().slice(0, 10);
+      const termo = normalizarTexto(buscaAtual.valor || "prospects")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "prospects";
+
+      return `vortech-${termo}-${data}`;
     }
 
-    function exportarVisiveis() {
+    async function baixarExcelFiltrado(empresas, nomeArquivo) {
+      validarApiUrl();
+      const resposta = await fetch(`${API_URL}/empresas/exportar-filtradas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ empresas, nomeArquivo })
+      });
+
+      if (!resposta.ok) {
+        let dados = null;
+        try {
+          dados = await resposta.json();
+        } catch (error) {
+          dados = null;
+        }
+        throw new Error(dados?.mensagem || `Erro HTTP ${resposta.status}`);
+      }
+
+      const blob = await resposta.blob();
+      const link = document.createElement("a");
+
+      link.href = URL.createObjectURL(blob);
+      link.download = `${nomeArquivo}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      link.remove();
+    }
+
+    async function exportarVisiveis() {
       const repetidos = empresasVisiveis.filter((lead) => lead.baseVortechMatch).length;
       const exportaveis = empresasVisiveis.filter((lead) => !lead.baseVortechMatch);
 
@@ -1583,40 +1545,16 @@
         return;
       }
 
-      const cabecalho = [
-        "CNPJ", "Razao social", "Nome fantasia", "Telefone", "Email", "Cidade", "UF", "CNAE",
-        "Score", "Prioridade", "Acao sugerida", "Tags", "Status Base", "Grupo Base", "Mensagem WhatsApp", "Mensagem E-mail"
-      ];
-      const linhas = exportaveis.map((lead) => [
-        formatarCnpj(lead.cnpj),
-        lead.razaoSocial,
-        lead.nomeFantasia,
-        lead.telefone1 || lead.telefone,
-        lead.email,
-        lead.cidadeComercial,
-        lead.ufComercial,
-        lead.cnaePrincipal,
-        lead.score,
-        lead.prioridade,
-        lead.acaoSugerida,
-        lead.tags.join(", "),
-        "Novo cliente",
-        "",
-        mensagemWhatsapp(lead),
-        mensagemEmail(lead)
-      ].map(csvValor).join(";"));
-      const conteudo = [cabecalho.map(csvValor).join(";"), ...linhas].join("\n");
-      const blob = new Blob([`\uFEFF${conteudo}`], { type: "text/csv;charset=utf-8" });
-      const link = document.createElement("a");
-      const data = new Date().toISOString().slice(0, 10);
-      const termo = normalizarTexto(buscaAtual.valor || "prospects").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-
-      link.href = URL.createObjectURL(blob);
-      link.download = `vortech-${termo}-${data}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      mensagem.textContent = `Planilha gerada com ${formatarNumero(exportaveis.length)} empresa(s) nova(s). ${formatarNumero(repetidos)} repetida(s) foram removidas.`;
+      try {
+        botaoExportar.disabled = true;
+        mensagem.textContent = "Gerando planilha Excel...";
+        await baixarExcelFiltrado(exportaveis, nomeArquivoExportacao());
+        mensagem.textContent = `Excel gerado com ${formatarNumero(exportaveis.length)} empresa(s) nova(s). ${formatarNumero(repetidos)} repetida(s) foram removidas.`;
+      } catch (error) {
+        mensagem.textContent = error.message;
+      } finally {
+        botaoExportar.disabled = false;
+      }
     }
 
     botaoExportar.addEventListener("click", () => {

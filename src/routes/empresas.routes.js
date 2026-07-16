@@ -12,6 +12,7 @@ import {
   importarBaseVortechPlanilha,
   listarContagensPorCnae,
   exportarEmpresasExcel,
+  exportarEmpresasFiltradasExcel,
   exportarEmpresasPorTermoExcel,
   exportarEmpresasPorCnaeExcel
 } from "../controllers/empresas.controller.js";
@@ -31,6 +32,8 @@ router.post("/base-vortech/importar", importarBaseVortechPlanilha);
 router.get("/cnaes/contagens", listarContagensPorCnae);
 
 router.get("/busca/exportar", exportarEmpresasPorTermoExcel);
+
+router.post("/exportar-filtradas", exportarEmpresasFiltradasExcel);
 
 router.get("/busca", buscarEmpresasPorTermo);
 

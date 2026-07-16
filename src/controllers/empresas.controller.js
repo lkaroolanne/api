@@ -816,6 +816,42 @@ export async function exportarEmpresasExcel(req, res) {
   }
 }
 
+export async function exportarEmpresasFiltradasExcel(req, res) {
+  try {
+    const empresas = Array.isArray(req.body?.empresas) ? req.body.empresas : [];
+    const nomeArquivo = String(req.body?.nomeArquivo || "vortech-prospects")
+      .replace(/[^\w-]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .toLowerCase() || "vortech-prospects";
+
+    if (!empresas.length) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Nenhuma empresa nova para exportar."
+      });
+    }
+
+    const arquivo = gerarPlanilhaEmpresas(empresas);
+
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=${nomeArquivo}.xlsx`
+    );
+
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+
+    return res.send(arquivo);
+  } catch (error) {
+    return res.status(500).json({
+      sucesso: false,
+      mensagem: error.message
+    });
+  }
+}
+
 export async function exportarEmpresasPorCnaeExcel(req, res) {
   try {
     const cnae = String(req.params.cnae || "").replace(/\D/g, "");
