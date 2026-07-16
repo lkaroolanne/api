@@ -3,8 +3,13 @@ import http from "node:http";
 import https from "node:https";
 
 const TEMPO_LIMITE_API_MS = Number(process.env.CNPJ_API_TIMEOUT_MS || 8000);
-const CNPJA_MAX_AGE = Number(process.env.CNPJA_MAX_AGE || 45);
+const CNPJA_STRATEGY = process.env.CNPJA_STRATEGY || "CACHE_IF_FRESH";
+const CNPJA_MAX_AGE = Number(process.env.CNPJA_MAX_AGE || 1);
+const CNPJA_MAX_STALE = Number(process.env.CNPJA_MAX_STALE || 365);
 const CNPJA_GEOCODING = String(process.env.CNPJA_GEOCODING || "false").toLowerCase() === "true";
+const CNPJA_SIMPLES = String(process.env.CNPJA_SIMPLES || "false").toLowerCase() === "true";
+const CNPJA_REGISTRATIONS = String(process.env.CNPJA_REGISTRATIONS || "").trim();
+const CNPJA_SUFRAMA = String(process.env.CNPJA_SUFRAMA || "false").toLowerCase() === "true";
 const CAMPOS_SALDO_CNPJA = [
   "x-ratelimit-remaining",
   "x-rate-limit-remaining",
@@ -177,7 +182,15 @@ async function buscarCnpjCnpja(cnpjLimpo) {
   const apiKey = process.env.CNPJA_API_KEY;
   const baseUrl = apiKey ? "https://api.cnpja.com" : "https://open.cnpja.com";
   const params = apiKey
-    ? { strategy: "CACHE_IF_FRESH", maxAge: CNPJA_MAX_AGE, geocoding: CNPJA_GEOCODING }
+    ? {
+        strategy: CNPJA_STRATEGY,
+        maxAge: CNPJA_MAX_AGE,
+        maxStale: CNPJA_MAX_STALE,
+        geocoding: CNPJA_GEOCODING,
+        simples: CNPJA_SIMPLES,
+        suframa: CNPJA_SUFRAMA,
+        ...(CNPJA_REGISTRATIONS ? { registrations: CNPJA_REGISTRATIONS } : {})
+      }
     : {};
 
   const response = await httpClient.get(`${baseUrl}/office/${cnpjLimpo}`, {
@@ -248,6 +261,10 @@ export async function buscarCnpjBrasilApi(cnpj) {
     const detalhe = formatarErroApi(error);
     erros.push(`CNPJa: ${detalhe}`);
     console.log("Erro CNPJa, usando fallback BrasilAPI:", error.response?.data || error.message);
+
+    if (process.env.CNPJA_API_KEY) {
+      throw new Error(`Nao foi possivel atualizar pela CNPJÁ comercial. ${detalhe}`);
+    }
   }
 
   try {
