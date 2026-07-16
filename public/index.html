@@ -746,7 +746,7 @@
       const empresa = lead.nomeFantasia || lead.razaoSocial || "sua empresa";
       const assunto = `Contato comercial - ${empresa}`;
 
-      return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemEmail(lead))}`;
+      return `https://outlook.office.com/mail/deeplink/compose?to=${encodeURIComponent(email)}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(mensagemEmail(lead))}`;
     }
 
     async function copiarTexto(valor, feedback = "Copiado.") {
