@@ -223,7 +223,8 @@
     const mensagemApiPadrao = API_URL
       ? `A busca consulta o backend em ${API_URL}.`
       : "Configure a URL publica do backend para usar a busca no GitHub Pages.";
-    const ATUALIZACOES_SIMULTANEAS = 6;
+    const ATUALIZACOES_SIMULTANEAS = 20;
+    const INTERVALO_CNPJA_COMERCIAL_MS = 0;
     const INTERVALO_CNPJA_PUBLICA_MS = 13000;
     const LIMITE_CNAE_TELA = 10000;
     const LOTE_RENDERIZACAO = 180;
@@ -1503,6 +1504,11 @@
 
     botaoAtualizarLote.addEventListener("click", async () => {
       const total = empresasAtuais.length;
+      const indicesPendentes = empresasAtuais
+        .map((empresa, index) => ({ empresa, index }))
+        .filter(({ empresa }) => !situacaoConferidaApi(empresa))
+        .map(({ index }) => index);
+      const totalPendentes = indicesPendentes.length;
       let atualizados = 0;
       let processados = 0;
       let proximoIndex = 0;
@@ -1513,7 +1519,13 @@
         return;
       }
 
-      if (!window.confirm(`Atualizar agora ${formatarNumero(total)} CNPJ(s) desta letra pela CNPJÁ?`)) {
+      if (!totalPendentes) {
+        mensagem.textContent = "Todos os CNPJs desta letra ja estao atualizados. Excel liberado.";
+        botaoExportar.disabled = false;
+        return;
+      }
+
+      if (!window.confirm(`Atualizar agora ${formatarNumero(totalPendentes)} CNPJ(s) pendente(s) desta letra pela CNPJÁ?`)) {
         mensagem.textContent = "Atualizacao cancelada.";
         return;
       }
@@ -1531,37 +1543,37 @@
       botaoExportar.disabled = true;
       botaoAtualizarLote.textContent = "Atualizando...";
       mensagem.textContent = statusCnpja.comercial
-        ? `CNPJÁ atualizando dados: 0 de ${total}.`
-        : `CNPJÁ publica atualizando devagar por limite de 5/min: 0 de ${total}.`;
+        ? `CNPJÁ atualizando dados: 0 de ${totalPendentes}.`
+        : `CNPJÁ publica atualizando devagar por limite de 5/min: 0 de ${totalPendentes}.`;
       cnpjaStatus.textContent = statusCnpja.comercial
         ? "CNPJÁ: consultando saldo durante a atualizacao..."
         : "CNPJÁ: modo publico sem token, 1 consulta a cada 13 segundos.";
 
       async function trabalhador() {
-        while (proximoIndex < total) {
-          const index = proximoIndex;
+        while (proximoIndex < totalPendentes) {
+          const index = indicesPendentes[proximoIndex];
           proximoIndex += 1;
 
           const ok = await atualizarCnpj(index);
           atualizados += ok ? 1 : 0;
           processados += 1;
           mensagem.textContent = statusCnpja.comercial
-            ? `CNPJÁ atualizando: ${processados} de ${total}. Atualizados: ${atualizados}.`
-            : `CNPJÁ publica: ${processados} de ${total}. Atualizados: ${atualizados}.`;
+            ? `CNPJÁ atualizando: ${processados} de ${totalPendentes}. Atualizados: ${atualizados}.`
+            : `CNPJÁ publica: ${processados} de ${totalPendentes}. Atualizados: ${atualizados}.`;
 
-          await esperar(statusCnpja.comercial ? 15 : INTERVALO_CNPJA_PUBLICA_MS);
+          await esperar(statusCnpja.comercial ? INTERVALO_CNPJA_COMERCIAL_MS : INTERVALO_CNPJA_PUBLICA_MS);
         }
       }
 
       const trabalhadores = Array.from(
-        { length: Math.min(statusCnpja.comercial ? ATUALIZACOES_SIMULTANEAS : 1, total) },
+        { length: Math.min(statusCnpja.comercial ? ATUALIZACOES_SIMULTANEAS : 1, totalPendentes) },
         () => trabalhador()
       );
 
       await Promise.all(trabalhadores);
 
-      if (atualizados !== total || !todosCnpjsConferidos()) {
-        mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${total}. A planilha so sera liberada quando todos forem conferidos pela API.`;
+      if (atualizados !== totalPendentes || !todosCnpjsConferidos()) {
+        mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${totalPendentes} pendente(s). A planilha so sera liberada quando todos forem conferidos pela API.`;
         await carregarStatusCnpja();
         botaoAtualizarLote.disabled = false;
         botaoAtualizarLote.textContent = "Atualizar tudo";
@@ -1570,7 +1582,7 @@
         return;
       }
 
-      mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${total} CNPJ(s). Dados atualizados na tela. Excel liberado.`;
+      mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${totalPendentes} pendente(s). Dados atualizados na tela. Excel liberado.`;
       await carregarStatusCnpja();
       botaoAtualizarLote.disabled = false;
       botaoAtualizarLote.textContent = "Atualizar tudo";
