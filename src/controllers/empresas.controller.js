@@ -879,6 +879,7 @@ export async function exportarEmpresasExcel(req, res) {
 export async function exportarEmpresasFiltradasExcel(req, res) {
   try {
     const busca = req.body?.busca || {};
+    const empresasRecebidas = Array.isArray(req.body?.empresas) ? req.body.empresas : [];
     const baseVortech = Array.isArray(req.body?.baseVortech) ? req.body.baseVortech : [];
     const nomeArquivo = String(req.body?.nomeArquivo || "vortech-prospects")
       .replace(/[^\w-]+/g, "-")
@@ -891,7 +892,11 @@ export async function exportarEmpresasFiltradasExcel(req, res) {
     let temProximoLote = false;
     const indiceClientes = montarIndiceClientesBase(baseVortech);
 
-    if (busca.tipo === "cnae") {
+    if (empresasRecebidas.length) {
+      empresas = empresasRecebidas;
+      totalEncontrado = empresas.length;
+      empresasNovas = empresas.filter((empresa) => !existeNaBaseCliente(empresa, indiceClientes) && !situacaoBloqueiaVenda(empresa));
+    } else if (busca.tipo === "cnae") {
       const cnae = String(busca.valor || "").replace(/\D/g, "");
 
       if (!cnae) {

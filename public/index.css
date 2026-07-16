@@ -849,6 +849,19 @@ th {
   text-transform: uppercase;
 }
 
+th[contenteditable="true"] {
+  cursor: text;
+  outline: none;
+}
+
+th[contenteditable="true"]:focus {
+  color: #ffffff;
+  background:
+    linear-gradient(180deg, rgba(240, 200, 90, 0.18), transparent),
+    var(--panel-strong);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
 th:nth-child(1),
 td:nth-child(1) {
   width: 132px;
