@@ -181,7 +181,6 @@
               <thead>
                 <tr>
                   <th data-coluna="cnpj">CNPJ</th>
-                  <th data-coluna="situacao">Situacao</th>
                   <th data-coluna="empresa">Empresa</th>
                   <th data-coluna="fantasia">Fantasia</th>
                   <th data-coluna="tags">Tags</th>
@@ -304,7 +303,6 @@
 
     const COLUNAS_PADRAO = {
       cnpj: "CNPJ",
-      situacao: "Situacao",
       empresa: "Empresa",
       fantasia: "Fantasia",
       tags: "Tags",
@@ -775,7 +773,7 @@
 
       paginacao.hidden = false;
       paginaInfo.textContent = "Paginas";
-      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)}. ${formatarNumero(dados.exibidos || 0)} exibida(s) de ${formatarNumero(dados.total || 0)} CNPJ(s).`;
+      paginaRange.textContent = `Pagina ${formatarNumero(dados.pagina || 1)} de ${formatarNumero(dados.totalPaginas || 1)} - ${formatarNumero(dados.exibidos || 0)} exibida(s) - ${formatarNumero(dados.total || 0)} CNPJ(s)`;
       paginasNumericas.innerHTML = Array.from({ length: dados.totalPaginas || 1 }, (_, indice) => {
         const pagina = indice + 1;
         return `
@@ -1019,13 +1017,9 @@
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : "";
-          const situacaoTabela = lead.situacaoComercial?.bloqueada
-            ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
-            : `<span class="status-badge">${escaparHtml(lead.situacaoComercial?.label || lead.situacao || "Nao informada")}</span>`;
           const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           const celulas = {
             cnpj: `<td data-coluna="cnpj" data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>`,
-            situacao: `<td data-coluna="situacao" data-label="${escaparAtributo(tituloColuna("situacao"))}">${situacaoTabela}</td>`,
             empresa: `<td data-coluna="empresa" data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>`,
             fantasia: `<td data-coluna="fantasia" data-label="${escaparAtributo(tituloColuna("fantasia"))}" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>`,
             tags: `<td data-coluna="tags" data-label="${escaparAtributo(tituloColuna("tags"))}">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>`,

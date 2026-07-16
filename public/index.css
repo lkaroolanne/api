@@ -718,8 +718,9 @@ button:disabled {
   gap: 14px;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   border-bottom: 1px solid var(--line);
-  padding: 12px 24px;
+  padding: 14px 24px;
   background: rgba(255, 230, 0, 0.05);
 }
 
@@ -734,12 +735,18 @@ button:disabled {
   text-transform: uppercase;
 }
 
+.pagination-bar > div:first-child {
+  flex: 1 1 420px;
+  min-width: 280px;
+}
+
 .pagination-bar span {
   display: block;
   margin-top: 3px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.35;
 }
 
 .pagination-actions,
@@ -757,8 +764,10 @@ button:disabled {
 }
 
 .page-actions {
-  flex-basis: 100%;
-  margin-top: 8px;
+  flex: 1 1 460px;
+  justify-content: flex-end;
+  margin-top: 0;
+  max-width: 100%;
 }
 
 .page-actions .letter-button {
@@ -917,7 +926,7 @@ td[data-coluna="cnpj"] {
 
 th[data-coluna="situacao"],
 td[data-coluna="situacao"] {
-  width: 168px;
+  display: none;
 }
 
 th[data-coluna="empresa"],
@@ -1299,6 +1308,13 @@ td:first-child {
   .pagination-bar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .pagination-bar > div:first-child,
+  .page-actions {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    min-width: 0;
   }
 
   .search-panel,
