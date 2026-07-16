@@ -742,10 +742,35 @@ button:disabled {
   font-weight: 700;
 }
 
-.pagination-actions {
+.pagination-actions,
+.letter-actions {
   display: flex;
   gap: 8px;
   flex: 0 0 auto;
+}
+
+.letter-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.letter-button {
+  min-width: 34px;
+  min-height: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.letter-button:hover,
+.letter-button.is-active {
+  border-color: var(--accent);
+  background: rgba(240, 200, 90, 0.18);
+  color: var(--accent-strong);
 }
 
 .table-wrap {
@@ -1250,9 +1275,14 @@ td:first-child {
   .actions-row button,
   .pagination-actions,
   .pagination-actions button,
+  .letter-actions,
   .toolbar-actions,
   .toolbar-actions button {
     width: 100%;
+  }
+
+  .letter-actions {
+    justify-content: flex-start;
   }
 
   .pagination-bar {
