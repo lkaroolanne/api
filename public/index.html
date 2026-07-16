@@ -228,6 +228,7 @@
     const LIMITE_CNAE_TELA = 10000;
     const LOTE_RENDERIZACAO = 180;
     const MINIMO_ATALHO_TERMO = 1;
+    const MINIMO_CNAE_ATALHO = 1000;
 
     const atalhos = [
       {
@@ -910,7 +911,8 @@
                     ...item,
                     total: dados.porCnae[item.valor] || 0
                   }))
-                  .filter((item) => item.total > 0)
+                  .filter((item) => item.total >= MINIMO_CNAE_ATALHO)
+                  .sort((a, b) => b.total - a.total)
               };
             }
 
@@ -1372,8 +1374,7 @@
         renderizarLinhas(dados.empresas || []);
         botaoExportar.disabled = true;
         if (dados.empresas?.length) {
-          mensagem.textContent = `${mensagem.textContent} Conferencia CNPJA automatica iniciando.`;
-          window.setTimeout(iniciarAtualizacaoAutomaticaCnpja, 350);
+          mensagem.textContent = `${mensagem.textContent} Clique em Atualizar tudo para conferir a situacao na hora.`;
         }
       } catch (error) {
         buscaAtual = { tipo: "", valor: "", letra: "A" };
@@ -1386,7 +1387,7 @@
         loadMoreBar.hidden = true;
         resumo.textContent = "Erro na consulta";
         mensagem.textContent = `${error.message} Verifique se a API esta online e tente novamente.`;
-        tabela.innerHTML = '<tr><td colspan="12" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
+        tabela.innerHTML = '<tr><td colspan="11" class="empty-state">Nao foi possivel carregar os dados.</td></tr>';
       } finally {
         definirCarregando(false);
       }
@@ -1512,6 +1513,11 @@
         return;
       }
 
+      if (!window.confirm(`Atualizar agora ${formatarNumero(total)} CNPJ(s) desta letra pela CNPJÁ?`)) {
+        mensagem.textContent = "Atualizacao cancelada.";
+        return;
+      }
+
       const statusCnpja = await carregarStatusCnpja();
       if (!statusCnpja?.configurado) {
         mensagem.textContent = "CNPJÁ indisponivel agora. Tente novamente em alguns minutos.";
@@ -1564,13 +1570,8 @@
         return;
       }
 
-      mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${total} CNPJ(s). Baixando planilha atualizada...`;
+      mensagem.textContent = `CNPJÁ conferiu ${atualizados} de ${total} CNPJ(s). Dados atualizados na tela. Excel liberado.`;
       await carregarStatusCnpja();
-      try {
-        await exportarVisiveis();
-      } catch (error) {
-        mensagem.textContent = `CNPJÁ atualizou ${atualizados} CNPJ(s), mas a exportacao falhou: ${error.message}`;
-      }
       botaoAtualizarLote.disabled = false;
       botaoAtualizarLote.textContent = "Atualizar tudo";
       botaoExportar.disabled = !todosCnpjsConferidos();
