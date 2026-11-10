@@ -27,7 +27,19 @@ As movimentações entre a tabela principal e `ReceitaProspectArquivo` são tran
 
 A lista prioriza contatos confirmados, celulares e fixos dentro da página carregada. Clientes identificados na Base Vortech e situações bloqueadas ficam no fim. Cada telefone pode ser marcado como não verificado, telefone confirmado, WhatsApp confirmado, sem resposta ou errado/desativado.
 
-Números errados deixam de ser sugeridos para ligação/WhatsApp e um telefone alternativo válido é priorizado. Sem resposta não invalida o número. A confirmação é por CNPJ e telefone e fica somente no navegador: não é compartilhada entre vendedores, não altera o Excel e se perde ao limpar os dados locais. Os filtros da tela não alteram as regras existentes de exportação.
+Números errados deixam de ser sugeridos para ligação/WhatsApp e um telefone alternativo válido é priorizado. Sem resposta não invalida o número. A confirmação é por CNPJ e telefone e fica somente no navegador: não é compartilhada entre vendedores e se perde ao limpar os dados locais. A nova exportação comercial considera essas confirmações, retira os números marcados como errados e preserva o cadastro original no banco.
+
+## Busca e exportação comercial
+
+Escolha categoria, estado e contato; nome, CNPJ ou CNAE são opcionais. A busca por nome desconsidera acentos. CNPJ completo e CNAE de sete dígitos, com ou sem formatação, são identificados separadamente. A página carrega 100 empresas; há navegação anterior/próxima e atalhos por categoria. No celular, os atalhos ficam recolhidos inicialmente para priorizar a busca.
+
+`GET /empresas/consulta` recebe `grupo`, `uf`, `contato`, `termo`, `pagina` e `limite`. A consulta considera somente situações ativas. As categorias podem se sobrepor: uma empresa com ferramentas e máquinas pode aparecer nas duas.
+
+`POST /empresas/consulta/exportar` recebe `consulta`, `escopo` (`pagina` ou `todos`), `cnpjs` (obrigatórios para página), `baseVortech` e `contatos` locais. Exportação de página vazia retorna erro, nunca exporta toda a base por engano. O backend relê os registros e aplica os mesmos filtros; não confia em telefones enviados pelo navegador. Os CNPJs selecionados mantêm a ordem da tela.
+
+Os botões **Baixar lista desta página** e **Baixar toda a busca** geram arquivos com categoria, UF, contato, escopo e data no nome. Clientes da Base Vortech, inativos e números marcados como errados são excluídos conforme o contexto da busca. A planilha usa colunas comerciais, larguras ajustadas, autofiltro e link WhatsApp a verificar quando houver número compatível. Nenhuma exportação consulta APIs comerciais ou incorpora dados do Google.
+
+Confirmações e números errados são filtros locais da página. Enquanto um deles estiver selecionado, o download da busca inteira fica desabilitado para não sugerir que a confirmação é compartilhada globalmente. Para categorias/estados grandes, exportações completas são limitadas a 50 mil registros: refine o filtro caso ultrapasse esse total.
 
 Os botões apenas abrem uma ligação ou conversa; o contato é feito pelo vendedor. Não há disparos automáticos nem confirmação automática de WhatsApp.
 

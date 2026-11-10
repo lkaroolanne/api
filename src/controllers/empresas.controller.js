@@ -5,6 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import xlsx from "xlsx";
 
+export { montarIndiceClientesBase, separarEmpresasExportaveis, lerBaseVortechArquivoSeguro };
+
 const CNAES_SOLDAGEM_REVENDA = new Set([
   "4663000",
   "4669999",

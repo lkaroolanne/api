@@ -1,4 +1,5 @@
 import XLSX from "xlsx";
+import { classificarPalavrasComerciais } from './focoComercial.js';
 
 const SITUACOES_RECEITA = {
   "01": "Nula",
@@ -78,6 +79,31 @@ function valorSimNao(valor) {
   return valor ? "Sim" : "Nao";
 }
 
+export function gerarPlanilhaComercial(empresas, categoria) {
+  const dados = empresas.map(empresa => {
+    const celular = [empresa.telefone1, empresa.telefone2].find(t => t?.length === 11);
+    const whatsapp = celular || (empresa.statusContato === 'WhatsApp confirmado' ? empresa.telefone1 : null);
+    return {
+      CNPJ: formatarCnpj(empresa.cnpj), Empresa: empresa.razaoSocial,
+      'Nome Fantasia': empresa.nomeFantasia, Categoria: categoria || classificarPalavrasComerciais(empresa).grupo,
+      UF: empresa.uf, 'Telefone principal': empresa.telefone1, 'Telefone alternativo': empresa.telefone2,
+      'Confirmacao do contato': empresa.statusContato || 'Nao verificado',
+      'WhatsApp a verificar': whatsapp ? `https://wa.me/55${whatsapp}` : '',
+      'E-mail': empresa.email, CNAE: empresa.cnaePrincipal, Endereco: formatarEndereco(empresa),
+      Bairro: empresa.bairro, CEP: empresa.cep, Origem: empresa.origem
+    };
+  });
+  const planilha = XLSX.utils.json_to_sheet(dados);
+  planilha['!cols'] = [22, 42, 35, 28, 8, 20, 20, 30, 36, 38, 14, 48, 25, 14, 30].map(wch => ({ wch }));
+  planilha['!autofilter'] = { ref: planilha['!ref'] };
+  dados.forEach((linha, i) => {
+    if (linha['WhatsApp a verificar']) planilha[`I${i + 2}`].l = { Target: linha['WhatsApp a verificar'] };
+  });
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, planilha, 'Lista comercial');
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+}
+
 export function gerarPlanilhaEmpresas(empresas) {
   const dados = empresas.map((empresa) => ({
     CNPJ: formatarCnpj(empresa.cnpj),
@@ -99,6 +125,7 @@ export function gerarPlanilhaEmpresas(empresas) {
     Segmento: empresa.segmento,
     Telefone: empresa.telefone || empresa.telefone1,
     "Telefone 2": empresa.telefone2,
+    "Status do contato": empresa.statusContato || "Nao verificado",
     Email: empresa.email,
     Site: empresa.site,
     CEP: empresa.cep,

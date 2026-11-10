@@ -3,13 +3,14 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import * as contatos from '../public/contatos.js';
+import * as consulta from '../public/consulta.js';
 
 function tela() {
   const html = fs.readFileSync(new URL('../public/index.html', import.meta.url), 'utf8');
-  const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^\s*import .*?;\s*$/m, '');
+  const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^\s*import .*?;\s*$/gm, '');
   // Check the entire page script, then run the functions without startup/network calls.
   new vm.Script(script);
-  const context = vm.createContext({ ...contatos, console,
+  const context = vm.createContext({ ...contatos, ...consulta, console,
     window: { location: { hostname: 'localhost' }, localStorage: { getItem: () => null } },
     document: { querySelector: () => ({}) }
   });
@@ -41,4 +42,24 @@ test('prioriza confirmados em relação a celulares; filtros reconhecem o segund
   assert.equal(run('ordenarLeads(lista.map(enriquecerEmpresa))[0].cnpj'), '1');
   assert.equal(run(`filtroAtual='celular'; filtrarLeads(lista)[0].cnpj`), '2');
   assert.equal(run(`filtroAtual='confirmados'; filtrarLeads(lista)[0].cnpj`), '1');
+});
+
+test('exportação fica bloqueada durante busca e confirmações locais não liberam exportação global', () => {
+  const run = tela();
+  run(`buscaAtual={consulta:normalizarConsulta({grupo:'solda',uf:'SP'}),total:238}; empresasVisiveis=[{cnpj:'12345678000100'}]; buscaEmAndamento=true; atualizarExportacao();`);
+  assert.equal(run('botaoExportar.disabled'), true);
+  assert.equal(run('botaoExportarBusca.disabled'), true);
+  run(`buscaEmAndamento=false; filtroAtual='confirmados'; atualizarExportacao();`);
+  assert.equal(run('botaoExportar.disabled'), false);
+  assert.equal(run('botaoExportarBusca.disabled'), true);
+});
+
+test('lista exportada envia apenas CNPJs filtrados da página e a consulta que gerou o resultado', async () => {
+  const run = tela();
+  run(`buscaAtual={consulta:normalizarConsulta({grupo:'solda',uf:'SP',contato:'telefone'}),total:238}; empresasVisiveis=[{cnpj:'12345678000100'},{cnpj:'98765432000100'}]; globalThis.fetch=async(url,opcoes)=>{globalThis.envio=JSON.parse(opcoes.body);return {ok:false,status:400,json:async()=>({mensagem:'fim do teste'})};};`);
+  await run(`exportarConsulta('pagina')`);
+  assert.equal(run('envio.escopo'), 'pagina');
+  assert.equal(run('envio.consulta.uf'), 'SP');
+  assert.equal(run('envio.cnpjs.join(",")'), '12345678000100,98765432000100');
+  assert.equal(run('exportacaoEmAndamento'), false);
 });
