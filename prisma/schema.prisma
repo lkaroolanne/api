@@ -101,3 +101,23 @@ model ReceitaProspect {
   @@index([cnaePrincipal])
   @@index([segmento])
 }
+
+// Cópia completa dos registros retirados da lista principal pela limpeza comercial.
+model ReceitaProspectArquivo {
+  cnpj        String   @id
+  dados       Json
+  motivo      String
+  arquivadoEm DateTime @default(now())
+}
+
+// Sem nomes, endereços ou telefones retornados pelo Google. Conteúdo exibido ao vivo.
+model ConsultaContatoGoogle {
+  id           Int      @id @default(autoincrement())
+  cnpj         String
+  placeId      String?
+  status       String
+  consultadoEm DateTime @default(now())
+
+  @@index([cnpj, consultadoEm])
+  @@index([consultadoEm])
+}

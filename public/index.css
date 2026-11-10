@@ -1455,3 +1455,14 @@ td:first-child {
     font-size: 12px;
   }
 }
+
+.contact-review { display: grid; gap: 6px; margin: 6px 0 12px; min-width: 180px; }
+.contact-review small, .contact-help { color: #c5c1ad; font-size: 12px; }
+.contact-review select { width: 100%; max-width: 260px; padding: 8px; border: 1px solid #72632e; border-radius: 6px; color: #f5efdb; background: #1b1b18; }
+.contact-invalid strong { text-decoration: line-through; color: #f0a29a; }
+.contact-help { margin: 12px 20px; line-height: 1.5; }
+.google-contact-panel { margin: 16px 20px; padding: 16px; border: 1px solid #78652a; border-radius: 10px; background: #191916; }
+.google-contact-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.google-contact-panel p { margin: 10px 0; }
+.google-contact-panel a { color: #ffe081; }
+.google-attribution { font-family: Arial, sans-serif; font-size: 16px; font-weight: 500; color: #fff; }

@@ -1,3 +1,4 @@
+import { normalizarTelefone } from "./qualidadeProspect.js";
 import axios from "axios";
 import http from "node:http";
 import https from "node:https";
@@ -64,8 +65,7 @@ function limparCnpj(cnpj) {
 }
 
 function primeiroTelefone(phones = []) {
-  const telefone = phones.find((item) => item?.area && item?.number);
-  return telefone ? `${telefone.area}${telefone.number}` : null;
+  return phones.map((item) => normalizarTelefone(`${item?.area || ""}${item?.number || ""}`)).find(Boolean) || null;
 }
 
 function primeiroEmail(emails = []) {

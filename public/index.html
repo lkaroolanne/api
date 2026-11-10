@@ -90,6 +90,8 @@
             </div>
           </div>
 
+          <p class="contact-help">Consulta Google individual: confere nome e endereco e pode ter cobranca na conta configurada. <a href="./termos-google.html" target="_blank" rel="noopener">Termos e privacidade</a>.</p>
+          <section id="contato-google-painel" class="google-contact-panel" aria-live="polite" hidden></section>
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
           </p>
@@ -119,7 +121,10 @@
           <div class="commercial-toolbar" id="commercial-toolbar" hidden>
             <div class="quick-filters" id="filtros-rapidos">
               <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
-              <button class="filter-chip" type="button" data-filtro="telefone">So com telefone</button>
+              <button class="filter-chip" type="button" data-filtro="telefone">Com telefone válido</button>
+              <button class="filter-chip" type="button" data-filtro="celular">Celular / WhatsApp</button>
+              <button class="filter-chip" type="button" data-filtro="confirmados">Contatos confirmados</button>
+              <button class="filter-chip" type="button" data-filtro="errados">Revisar números errados</button>
               <button class="filter-chip" type="button" data-filtro="email">Com e-mail</button>
               <button class="filter-chip" type="button" data-filtro="sem-email">Sem e-mail</button>
               <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
@@ -129,6 +134,7 @@
             </div>
           </div>
 
+          <p class="contact-help">Prioridade nesta página: contatos confirmados, celulares e fixos. Celular não confirma WhatsApp. Registre o resultado após o contato; os registros ficam somente neste navegador e não alteram o Excel exportado.</p>
           <div class="executive-grid" id="executive-grid" hidden>
             <article class="executive-card">
               <span>Total encontrado</span>
@@ -206,7 +212,8 @@
     </div>
   </main>
 
-  <script>
+  <script type="module">
+    import { contatosEmpresa, melhorContato, chaveContato, STATUS_CONTATO, linkWhatsapp } from './contatos.js';
     const hostLocal = ["", "localhost", "127.0.0.1"].includes(window.location.hostname);
     const hostGithubPages = window.location.hostname.endsWith("github.io");
     const API_URL = (
@@ -291,6 +298,7 @@
     const fecharListaDia = $("#fechar-lista-dia");
 
     const STORAGE_KEYS = {
+      contatos: "vortech.contatos.v1",
       favoritos: "vortech.favoritos",
       baseVortech: "vortech.baseVortech",
       colunasTabela: "vortech.colunasTabela",
@@ -352,6 +360,51 @@
     let ordemColunas = normalizarOrdemColunas(lerJsonLocal(STORAGE_KEYS.ordemColunasTabela, []));
     let colunaArrastada = "";
     let atualizacaoAutomaticaCnpja = false;
+    let consultaGoogleAtual = 0;
+    const consultasGooglePendentes = new Set();
+
+    function fecharContatoGoogle() {
+      consultaGoogleAtual++;
+      const painel = $('#contato-google-painel');
+      painel.hidden = true;
+      painel.innerHTML = '';
+    }
+
+    async function buscarContatoGoogle(index, botao) {
+      const empresa = empresasAtuais[index];
+      if (!empresa || consultasGooglePendentes.has(empresa.cnpj)) return;
+      const pedido = ++consultaGoogleAtual;
+      const painel = $('#contato-google-painel');
+      consultasGooglePendentes.add(empresa.cnpj);
+      botao.disabled = true;
+      painel.hidden = false;
+      painel.textContent = 'Conferindo nome, CEP, logradouro, numero e UF no Google Maps...';
+      try {
+        const dados = await buscarJson(`${API_URL}/empresas/contato-google/${encodeURIComponent(empresa.cnpj)}`, { method: 'POST' });
+        if (pedido !== consultaGoogleAtual) return;
+        const contato = dados.contato;
+        const seguro = valor => {
+          try { return new URL(valor).protocol === 'https:' ? escaparAtributo(valor) : ''; } catch { return ''; }
+        };
+        painel.innerHTML = `
+          <div class="google-contact-heading"><strong>Consulta de contato · ${escaparHtml(formatarCnpj(empresa.cnpj))}</strong><button type="button" class="mini-button" data-fechar-google>Fechar</button></div>
+          <p>${escaparHtml(dados.mensagem)}</p>
+          ${contato ? `<strong>${escaparHtml(contato.nome)}</strong><p>${escaparHtml(contato.endereco)}</p>
+            <p>Telefone publicado: <strong>${escaparHtml(contato.telefone)}</strong></p>
+            <div class="lead-actions"><a class="mini-button action-link" href="tel:+55${escaparAtributo(contato.telefone)}">Ligar</a>
+            ${contato.celular ? `<a class="mini-button action-link" href="${linkWhatsapp(contato.telefone, mensagemWhatsapp(enriquecerEmpresa(empresa)))}" target="_blank" rel="noopener">Verificar WhatsApp</a>` : ''}
+            <a class="mini-button action-link" href="${seguro(contato.googleMapsUri)}" target="_blank" rel="noopener">Ver estabelecimento</a></div>` : ''}
+          <p class="google-attribution">Google Maps</p>
+          ${(contato?.attributions || []).map(item => `<small>${escaparHtml(item.provider || '')}${seguro(item.providerUri) ? ` <a href="${seguro(item.providerUri)}" target="_blank" rel="noopener">Fonte</a>` : ''}</small>`).join('')}
+          <small>Consultado em ${escaparHtml(new Date(dados.consultadoEm).toLocaleString('pt-BR'))}. Atendimento e WhatsApp nao confirmados. Resultado exibido ao vivo; nao altera a base nem o Excel.</small>
+          <p><a href="./termos-google.html" target="_blank" rel="noopener">Termos e privacidade desta consulta</a></p>`;
+      } catch (error) {
+        if (pedido === consultaGoogleAtual) painel.textContent = error.message;
+      } finally {
+        consultasGooglePendentes.delete(empresa.cnpj);
+        botao.disabled = false;
+      }
+    }
 
     mensagem.textContent = mensagemApiPadrao;
 
@@ -365,6 +418,7 @@
 
     function carregarEstadoLocal() {
       return {
+        contatos: lerJsonLocal(STORAGE_KEYS.contatos, {}),
         favoritos: lerJsonLocal(STORAGE_KEYS.favoritos, {}),
         baseVortech: lerJsonLocal(STORAGE_KEYS.baseVortech, [])
       };
@@ -571,7 +625,7 @@
     }
 
     function temTelefone(empresa) {
-      return Boolean(String(empresa.telefone1 || empresa.telefone || "").trim());
+      return Boolean(melhorContato(empresa, estadoLocal.contatos));
     }
 
     function temEmail(empresa) {
@@ -620,9 +674,7 @@
         empresa.cnaePrincipal,
         empresa.cnaeDescricao,
         empresa.atividadePrincipal,
-        empresa.email,
-        campoCidade(empresa),
-        campoUf(empresa)
+        empresa.segmento
       ].join(" "));
     }
 
@@ -633,8 +685,8 @@
       if (/revenda|varejo|atacado|comerc|distrib/.test(base)) tags.add("Revenda");
       if (/industr|fabric|metalurg|manutenc|usinagem/.test(base)) tags.add("Industria");
       if (/ferrament|ferragen|abrasiv|supriment/.test(base)) tags.add("Ferramentas");
-      if (/gas|gases|oxigen|argon|acetilen|cilindr|regulador/.test(base)) tags.add("Gases");
-      if (/solda|soldag|mig|tig|eletrodo|oxicorte|plasma|arame/.test(base)) tags.add("Solda");
+      if (/\b(gas|gases|oxigenio|argonio|acetileno|cilindro|cilindros|regulador)\b/.test(base)) tags.add("Gases");
+      if (/\b(solda|soldagem|mig|tig|eletrodo|eletrodos|oxicorte|plasma|arame)\b/.test(base)) tags.add("Solda");
       if (/maquina|maquinas|equipament|inversor/.test(base)) tags.add("Maquinas");
       if (/distribuidor|distribuicao|atacad/.test(base)) tags.add("Distribuidor");
       if (/consumivel|arame|eletrodo|vareta|tocha|abrasiv/.test(base)) tags.add("Consumiveis");
@@ -653,18 +705,20 @@
       if (campoUf(empresa)) pontos += 5;
       if (campoCidade(empresa)) pontos += 6;
 
+      const tokens = new Set(base.match(/[a-z0-9]+/g) || []);
       TERMOS_SCORE.forEach((termo) => {
-        if (base.includes(termo)) pontos += 5;
+        if (tokens.has(termo)) pontos += 5;
       });
 
       const tags = gerarTags(empresa);
       pontos += Math.min(tags.length * 4, 20);
       pontos = Math.min(pontos, 100);
 
+      const contato = melhorContato(empresa, estadoLocal.contatos);
       const acao = !temTelefone(empresa) && !temEmail(empresa)
         ? "Enriquecer pela API"
         : temTelefone(empresa)
-          ? "Chamar no WhatsApp"
+          ? (contato.status === "whatsapp" ? "Conversar no WhatsApp" : contato.celular ? "Verificar WhatsApp" : "Ligar para compras")
           : "Enviar e-mail curto";
 
       return { pontos, acao, tags };
@@ -694,10 +748,6 @@
     }
 
     function enriquecerEmpresa(empresa) {
-      if (empresa?.enriquecidoTela) {
-        return empresa;
-      }
-
       const chave = chaveEmpresa(empresa);
       const score = calcularScore(empresa);
       const baseVortechMatch = verificarBaseVortech(empresa);
@@ -713,7 +763,7 @@
         favorito: Boolean(estadoLocal.favoritos[chave]),
         baseVortechMatch,
         situacaoComercial: situacaoLead,
-        telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
+        telefoneLimpo: melhorContato(empresa, estadoLocal.contatos)?.numero || "",
         cidadeComercial: campoCidade(empresa),
         ufComercial: campoUf(empresa)
       };
@@ -724,7 +774,7 @@
         `CNPJ: ${formatarCnpj(lead.cnpj)}`,
         `Razao social: ${texto(lead.razaoSocial)}`,
         `Nome fantasia: ${texto(lead.nomeFantasia)}`,
-        `Telefone: ${texto(lead.telefone1 || lead.telefone)}`,
+        `Telefone: ${texto(lead.telefoneLimpo)}`,
         `E-mail: ${texto(lead.email)}`,
         `Cidade/UF: ${texto(lead.cidadeComercial)}/${texto(lead.ufComercial)}`,
         `CNAE: ${texto(lead.cnaePrincipal)}`,
@@ -736,8 +786,7 @@
     }
 
     function urlWhatsapp(lead) {
-      const telefone = lead.telefoneLimpo.startsWith("55") ? lead.telefoneLimpo : `55${lead.telefoneLimpo}`;
-      return `https://web.whatsapp.com/send?phone=${telefone}&text=${encodeURIComponent(mensagemWhatsapp(lead))}`;
+      return linkWhatsapp(lead.telefoneLimpo, mensagemWhatsapp(lead));
     }
 
     function urlEmail(lead) {
@@ -925,6 +974,10 @@
 
     function filtrarLeads(lista) {
       return lista.filter((lead) => {
+        const contato = melhorContato(lead, estadoLocal.contatos);
+        if (filtroAtual === "celular") return Boolean(contato?.celular || contato?.status === "whatsapp");
+        if (filtroAtual === "confirmados") return Boolean(contato?.confirmado);
+        if (filtroAtual === "errados") return contatosEmpresa(lead, estadoLocal.contatos).some(item => item.bloqueado);
         if (filtroAtual === "telefone") return temTelefone(lead);
         if (filtroAtual === "email") return temEmail(lead);
         if (filtroAtual === "sem-email") return !temEmail(lead);
@@ -936,7 +989,14 @@
     }
 
     function ordenarLeads(lista) {
-      return [...lista].sort((a, b) => b.score - a.score);
+      function prioridade(lead) {
+        if (situacaoComercial(lead).bloqueada) return -1000;
+        if (lead.baseVortechMatch) return -500;
+        const contato = melhorContato(lead, estadoLocal.contatos);
+        if (!contato) return -100;
+        return contato.status === "whatsapp" ? 400 : contato.confirmado ? 300 : contato.status === "sem_resposta" ? 50 : contato.celular ? 200 : 100;
+      }
+      return [...lista].sort((a, b) => prioridade(b) - prioridade(a) || b.score - a.score);
     }
 
     function atualizarResumoExecutivo() {
@@ -952,7 +1012,7 @@
       const qualidade = total ? Math.round(((comTelefone + comEmail) / (total * 2)) * 100) : 0;
       let estrategia = "Enriquecimento pela API";
 
-      if (comTelefone) estrategia = "Ligacao + WhatsApp";
+      if (comTelefone) estrategia = "Priorizar contatos confirmados";
       else if (comEmail) estrategia = "Campanha de e-mail";
 
       $("#exec-total").textContent = formatarNumero(total);
@@ -964,15 +1024,32 @@
       $("#exec-email").textContent = formatarNumero(comEmail);
       $("#exec-sem-email").textContent = `${formatarNumero(semEmail)} sem e-mail`;
       $("#exec-estrategia").textContent = estrategia;
-      $("#exec-qualidade").textContent = `Qualidade da base: ${qualidade}%`;
+      $("#exec-qualidade").textContent = `Campos de contato preenchidos: ${qualidade}%`;
+    }
+
+    function renderizarContatos(lead, index) {
+      const contatos = contatosEmpresa(lead, estadoLocal.contatos);
+      if (!contatos.length) return '<span>Sem telefone com formato válido</span>';
+      return contatos.map(contato => `
+        <div class="contact-review ${contato.bloqueado ? 'contact-invalid' : ''}">
+          <strong>${escaparHtml(contato.numero)}</strong>
+          <small>${contato.status === 'whatsapp' ? 'WhatsApp confirmado pela equipe' : contato.celular ? 'Celular ? WhatsApp a verificar' : 'Fixo'}${contato.atualizadoEm ? ` ? Registro em ${escaparHtml(new Date(contato.atualizadoEm).toLocaleDateString('pt-BR'))}` : ''}</small>
+          <select aria-label="Resultado do contato ${contato.numero}" data-contato-index="${index}" data-telefone="${contato.numero}">
+            ${Object.entries(STATUS_CONTATO).map(([valor, label]) => `<option value="${valor}" ${contato.status === valor ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+        </div>`).join('');
     }
 
     function renderizarAcoesLead(lead, index) {
+      const contato = melhorContato(lead, estadoLocal.contatos);
+      const podeAbordar = !lead.situacaoComercial?.bloqueada;
       return `
         <div class="lead-actions">
-          ${lead.telefoneLimpo ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">WhatsApp</a>` : ""}
+          ${podeAbordar ? `<button class="mini-button" type="button" data-google="${index}" ${consultasGooglePendentes.has(lead.cnpj) ? 'disabled' : ''}>Consultar contato Google</button>` : ''}
+          ${contato && podeAbordar ? `<a class="mini-button action-link" href="tel:+55${contato.numero}">Ligar</a>` : ""}
+          ${contato && podeAbordar && (contato.celular || contato.status === "whatsapp") ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">${contato.status === "whatsapp" ? "WhatsApp confirmado" : "Verificar WhatsApp"}</a>` : ""}
           <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
-          ${temEmail(lead)
+          ${temEmail(lead) && podeAbordar
             ? `<a class="mini-button action-link" href="${urlEmail(lead)}" target="_blank" rel="noopener">E-mail</a>`
             : `<button class="mini-button" type="button" disabled>E-mail</button>`}
         </div>
@@ -987,12 +1064,13 @@
     }
 
     function renderizarLinhas(empresas) {
+      fecharContatoGoogle();
       empresasAtuais = empresas.map((empresa) => ({
         ...empresa,
         chaveLocal: chaveEmpresa(empresa),
         baseVortechMatch: verificarBaseVortech(empresa),
         situacaoComercial: situacaoComercial(empresa),
-        telefoneLimpo: limparNumeros(empresa.telefone1 || empresa.telefone),
+        telefoneLimpo: melhorContato(empresa, estadoLocal.contatos)?.numero || "",
         cidadeComercial: campoCidade(empresa),
         ufComercial: campoUf(empresa)
       }));
@@ -1001,11 +1079,8 @@
     }
 
     function aplicarFiltrosERenderizar() {
-      const precisaOrdenar = buscaAtual.tipo !== "cnae";
-      empresasVisiveis = filtrarLeads(empresasAtuais);
-      if (precisaOrdenar) {
-        empresasVisiveis = ordenarLeads(empresasVisiveis.map(enriquecerEmpresa));
-      }
+      empresasAtuais = empresasAtuais.map(enriquecerEmpresa);
+      empresasVisiveis = ordenarLeads(filtrarLeads(empresasAtuais));
       const linhasRenderizadas = empresasVisiveis.slice(0, quantidadeRenderizada).map(enriquecerEmpresa);
       const indicePorChave = new Map(empresasAtuais.map((item, index) => [item.chaveLocal, index]));
       const colspan = colunasOrdenadas().length;
@@ -1032,7 +1107,7 @@
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : "";
-          const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Contato OK</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
+          const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Telefone e e-mail preenchidos</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           const celulas = {
             cnpj: `<td data-coluna="cnpj" data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>`,
             empresa: `<td data-coluna="empresa" data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>`,
@@ -1040,7 +1115,7 @@
             tags: `<td data-coluna="tags" data-label="${escaparAtributo(tituloColuna("tags"))}">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>`,
             cnae: `<td data-coluna="cnae" data-label="${escaparAtributo(tituloColuna("cnae"))}" data-campo="cnaePrincipal">${escaparHtml(lead.cnaePrincipal)}</td>`,
             uf: `<td data-coluna="uf" data-label="${escaparAtributo(tituloColuna("uf"))}" data-campo="uf">${escaparHtml(lead.ufComercial)}</td>`,
-            telefone: `<td data-coluna="telefone" data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${escaparHtml(lead.telefone1 || lead.telefone)}</td>`,
+            telefone: `<td data-coluna="telefone" data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${renderizarContatos(lead, index)}</td>`,
             email: `<td data-coluna="email" data-label="${escaparAtributo(tituloColuna("email"))}" data-campo="email">${escaparHtml(lead.email)}</td>`,
             acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>`
           };
@@ -1403,7 +1478,32 @@
       executarBusca(botao.dataset.valor, botao.dataset.tipo);
     });
 
+    tabela.addEventListener("change", (event) => {
+      const campo = event.target.closest('[data-contato-index]');
+      if (!campo || !Object.hasOwn(STATUS_CONTATO, campo.value)) return;
+      const empresa = empresasAtuais[Number(campo.dataset.contatoIndex)];
+      if (!empresa) return;
+      const chave = chaveContato(empresa, campo.dataset.telefone);
+      const registros = { ...estadoLocal.contatos, [chave]: { status: campo.value, atualizadoEm: new Date().toISOString() } };
+      try {
+        window.localStorage.setItem(STORAGE_KEYS.contatos, JSON.stringify(registros));
+      } catch (error) {
+        mensagem.textContent = 'Não foi possível salvar a confirmação neste navegador. Verifique o armazenamento e tente novamente.';
+        aplicarFiltrosERenderizar();
+        return;
+      }
+      estadoLocal.contatos = registros;
+      aplicarFiltrosERenderizar();
+      mensagem.textContent = 'Resultado salvo neste navegador. Números errados deixam de ser sugeridos para contato; outro telefone válido é priorizado.';
+    });
+
+    $('#contato-google-painel').addEventListener('click', (event) => {
+      if (event.target.closest('[data-fechar-google]')) fecharContatoGoogle();
+    });
+
     tabela.addEventListener("click", (event) => {
+      const google = event.target.closest('[data-google]');
+      if (google) { buscarContatoGoogle(Number(google.dataset.google), google); return; }
       const copiar = event.target.closest("[data-copiar]");
       if (copiar) {
         const index = Number(copiar.dataset.copiar);
@@ -1725,6 +1825,7 @@
     });
 
     botaoLimpar.addEventListener("click", () => {
+      fecharContatoGoogle();
       buscaAtual = { tipo: "", valor: "", pagina: 1, totalPaginas: 1 };
       empresasAtuais = [];
       empresasVisiveis = [];

@@ -8,8 +8,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const PASTA_EMPRESAS = path.join(__dirname, "..", "data", "empresas");
-const TAMANHO_LOTE = Number(process.env.IMPORT_EMPRESAS_BATCH_SIZE || 100);
-const CONCORRENCIA = Number(process.env.IMPORT_EMPRESAS_CONCURRENCY || 4);
+const TAMANHO_LOTE = Number(process.env.IMPORT_EMPRESAS_BATCH_SIZE || 1000);
 
 function limpar(valor) {
   if (!valor) return null;
@@ -25,6 +24,11 @@ function separarLinhaCSV(linha) {
     const char = linha[i];
 
     if (char === '"') {
+      if (dentroAspas && linha[i + 1] === '"') {
+        atual += '"';
+        i += 1;
+        continue;
+      }
       dentroAspas = !dentroAspas;
     } else if (char === ";" && !dentroAspas) {
       resultado.push(atual);
@@ -39,38 +43,36 @@ function separarLinhaCSV(linha) {
 }
 
 async function executarAtualizacoes(lote) {
-  let proximo = 0;
-  let registrosAfetados = 0;
-
-  async function trabalhador() {
-    while (proximo < lote.length) {
-      const item = lote[proximo];
-      proximo += 1;
-
-      const resultado = await prisma.receitaProspect.updateMany({
-        where: { cnpjBasico: item.cnpjBasico },
-        data: item.data,
-      });
-
-      registrosAfetados += resultado.count;
-    }
-  }
-
-  const trabalhadores = Array.from(
-    { length: Math.min(CONCORRENCIA, lote.length) },
-    () => trabalhador()
-  );
-
-  await Promise.all(trabalhadores);
-  return registrosAfetados;
+  if (!lote.length) return 0;
+  // Um UPDATE por lote, com parâmetros vinculados, evita uma viagem de rede por CNPJ.
+  const dados = JSON.stringify(lote.map(({ cnpjBasico, data }) => ({ cnpjBasico, ...data })));
+  return prisma.$executeRaw`
+    UPDATE "ReceitaProspect" AS destino SET
+      "razaoSocial" = origem."razaoSocial",
+      "naturezaJuridica" = origem."naturezaJuridica",
+      "qualificacaoResponsavel" = origem."qualificacaoResponsavel",
+      "capitalSocial" = origem."capitalSocial",
+      "porteEmpresa" = origem."porteEmpresa",
+      "enteFederativo" = origem."enteFederativo",
+      "atualizadoEm" = CURRENT_TIMESTAMP
+    FROM jsonb_to_recordset(${dados}::jsonb) AS origem(
+      "cnpjBasico" text, "razaoSocial" text, "naturezaJuridica" text,
+      "qualificacaoResponsavel" text, "capitalSocial" text,
+      "porteEmpresa" text, "enteFederativo" text
+    )
+    WHERE destino."cnpjBasico" = origem."cnpjBasico"
+  `;
 }
 
-async function importarArquivoZip(caminhoZip, cnpjsBasicosExistentes) {
+async function importarArquivo(caminhoZip, cnpjsBasicosExistentes) {
   console.log(`\nLendo arquivo: ${path.basename(caminhoZip)}`);
 
-  const directory = await unzipper.Open.file(caminhoZip);
+  const compactado = caminhoZip.toLowerCase().endsWith(".zip");
+  const arquivos = compactado
+    ? (await unzipper.Open.file(caminhoZip)).files
+    : [{ type: "File", path: caminhoZip, stream: () => fs.createReadStream(caminhoZip) }];
 
-  for (const file of directory.files) {
+  for (const file of arquivos) {
     if (file.type !== "File") continue;
 
     const stream = file.stream().pipe(iconv.decodeStream("latin1"));
@@ -87,12 +89,12 @@ async function importarArquivoZip(caminhoZip, cnpjsBasicosExistentes) {
     for await (const linha of rl) {
       total += 1;
 
-      const colunas = separarLinhaCSV(linha);
-      const cnpjBasico = limpar(colunas[0]);
-
+      // A maioria das empresas não pertence à seleção comercial importada.
+      const cnpjBasico = linha.match(/^"?(\d{8})"?;/)?.[1];
       if (!cnpjBasico || !cnpjsBasicosExistentes.has(cnpjBasico)) {
         continue;
       }
+      const colunas = separarLinhaCSV(linha);
 
       lote.push({
         cnpjBasico,
@@ -128,7 +130,21 @@ async function importarArquivoZip(caminhoZip, cnpjsBasicosExistentes) {
   }
 }
 
+function listarArquivosEmpresas(pasta) {
+  const entradas = fs.readdirSync(pasta, { withFileTypes: true });
+  const arquivos = [];
+  for (const entrada of entradas) {
+    const caminho = path.join(pasta, entrada.name);
+    if (entrada.isDirectory()) arquivos.push(...listarArquivosEmpresas(caminho));
+    else if (/\.(zip|EMPRECSV)$/i.test(entrada.name)) arquivos.push(caminho);
+  }
+  return arquivos.sort();
+}
+
 async function main() {
+  if (!Number.isInteger(TAMANHO_LOTE) || TAMANHO_LOTE < 1) {
+    throw new Error("IMPORT_EMPRESAS_BATCH_SIZE deve ser um inteiro positivo.");
+  }
   console.log("Buscando CNPJs basicos ja importados em ReceitaProspect...");
 
   const registros = await prisma.receitaProspect.findMany({
@@ -142,16 +158,17 @@ async function main() {
 
   console.log(`CNPJs basicos encontrados: ${cnpjsBasicosExistentes.size}`);
 
-  const arquivos = fs
-    .readdirSync(PASTA_EMPRESAS)
-    .filter((arquivo) => arquivo.toLowerCase().endsWith(".zip"))
-    .sort();
+  if (!cnpjsBasicosExistentes.size) {
+    throw new Error("Importe primeiro os Estabelecimentos: nao ha CNPJs para completar com os dados de Empresas.");
+  }
+  const arquivos = listarArquivosEmpresas(PASTA_EMPRESAS);
+  if (!arquivos.length) throw new Error("Nenhum ZIP ou arquivo EMPRECSV encontrado em data/empresas.");
 
   console.log("Arquivos encontrados:");
   console.log(arquivos);
 
   for (const arquivo of arquivos) {
-    await importarArquivoZip(path.join(PASTA_EMPRESAS, arquivo), cnpjsBasicosExistentes);
+    await importarArquivo(arquivo, cnpjsBasicosExistentes);
   }
 
   console.log("\nImportacao das Empresas finalizada com sucesso!");

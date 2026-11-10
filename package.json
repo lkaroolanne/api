@@ -10,7 +10,9 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:generate": "prisma generate",
     "prisma:studio": "prisma studio",
-    "importar:receita": "node scripts/importarEstabelecimentos.js"
+    "importar:receita": "node scripts/importarEstabelecimentos.js",
+    "limpar:foco": "node scripts/limparFocoComercial.js",
+    "ampliar:foco": "node scripts/ampliarFocoComercial.js"
   },
   "keywords": [
     "prospects",

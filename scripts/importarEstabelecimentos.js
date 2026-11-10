@@ -1,66 +1,16 @@
+import "dotenv/config";
 import fs from "fs";
 import path from "path";
 import unzipper from "unzipper";
 import csv from "csv-parser";
 import iconv from "iconv-lite";
 import { PrismaClient } from "@prisma/client";
+import { normalizarTelefone, normalizarEmail, selecionarSegmento } from "../src/services/qualidadeProspect.js";
 
 const prisma = new PrismaClient();
 
 const PASTA_ESTABELECIMENTOS = path.resolve("data/receita/estabelecimentos");
 const TAMANHO_LOTE = Number(process.env.IMPORT_BATCH_SIZE || 1000);
-
-const CNAES_INTERESSE = {
-  "4663000": "Revenda de maquinas, equipamentos e inversoras",
-  "4669999": "Revenda de equipamentos industriais para solda",
-  "4672900": "Atacado de ferragens e ferramentas",
-  "4684299": "Distribuidor de gases e cilindros",
-  "4689399": "Distribuidor tecnico de produtos para solda",
-  "4744001": "Varejo de ferragens e ferramentas",
-  "4759899": "Revenda tecnica de utilidades, maquinas e suprimentos"
-};
-
-const TERMOS_ADERENTES = [
-  "solda",
-  "soldagem",
-  "mig",
-  "mag",
-  "tig",
-  "eletrodo",
-  "eletrodos",
-  "tungstenio",
-  "arame",
-  "vareta",
-  "cilindro",
-  "cilindros",
-  "regulador",
-  "reguladores",
-  "valvula",
-  "valvulas",
-  "macarico",
-  "macaricos",
-  "inversora",
-  "inversoras",
-  "retificador",
-  "abrasivo",
-  "abrasivos",
-  "oxicorte",
-  "plasma",
-  "oxigenio",
-  "argonio",
-  "acetileno",
-  "ferragem",
-  "ferragens",
-  "ferramenta",
-  "ferramentas"
-];
-
-const CNAES_AMPLOS_COM_TERMO_OBRIGATORIO = new Set([
-  "4663000",
-  "4669999",
-  "4689399",
-  "4759899"
-]);
 
 const HEADERS = [
   "cnpjBasico",
@@ -100,35 +50,15 @@ function limpar(valor) {
   return String(valor).trim().replace(/^"|"$/g, "") || null;
 }
 
-function normalizarTexto(valor) {
-  return String(valor || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
 function montarCnpj(row) {
-  return `${limpar(row.cnpjBasico)}${limpar(row.cnpjOrdem)}${limpar(row.cnpjDv)}`;
+  const partes = [limpar(row.cnpjBasico), limpar(row.cnpjOrdem), limpar(row.cnpjDv)];
+  if (!/^\d{8}$/.test(partes[0] || "") || !/^\d{4}$/.test(partes[1] || "") || !/^\d{2}$/.test(partes[2] || "")) return null;
+  const cnpj = partes.join("");
+  return /^(\d)\1+$/.test(cnpj) ? null : cnpj;
 }
 
 function montarTelefone(ddd, telefone) {
-  const dddLimpo = limpar(ddd);
-  const telefoneLimpo = limpar(telefone);
-  return dddLimpo && telefoneLimpo ? `${dddLimpo}${telefoneLimpo}` : null;
-}
-
-function temTermoAderente(row) {
-  const texto = normalizarTexto([
-    row.nomeFantasia,
-    row.cnaePrincipal,
-    row.cnaeSecundarios,
-    row.tipoLogradouro,
-    row.logradouro,
-    row.bairro,
-    row.email
-  ].filter(Boolean).join(" "));
-
-  return TERMOS_ADERENTES.some((termo) => texto.includes(termo));
+  return normalizarTelefone(`${limpar(ddd) || ""}${limpar(telefone) || ""}`);
 }
 
 function montarProspect(row) {
@@ -136,11 +66,15 @@ function montarProspect(row) {
   const situacao = limpar(row.situacao);
 
   if (situacao !== "02") return null;
-  if (!CNAES_INTERESSE[cnae]) return null;
-  if (CNAES_AMPLOS_COM_TERMO_OBRIGATORIO.has(cnae) && !temTermoAderente(row)) return null;
+  const segmento = selecionarSegmento(row);
+  const cnpj = montarCnpj(row);
+  if (!segmento || !cnpj) return null;
+  const primeiro = montarTelefone(row.ddd1, row.telefone1);
+  const segundo = montarTelefone(row.ddd2, row.telefone2);
+  const telefones = [...new Set([primeiro, segundo].filter(Boolean))];
 
   return {
-    cnpj: montarCnpj(row),
+    cnpj,
     cnpjBasico: limpar(row.cnpjBasico),
     nomeFantasia: limpar(row.nomeFantasia),
     situacao,
@@ -154,10 +88,10 @@ function montarProspect(row) {
     cep: limpar(row.cep),
     uf: limpar(row.uf),
     municipioCodigo: limpar(row.municipioCodigo),
-    telefone1: montarTelefone(row.ddd1, row.telefone1),
-    telefone2: montarTelefone(row.ddd2, row.telefone2),
-    email: limpar(row.email)?.toLowerCase() || null,
-    segmento: CNAES_INTERESSE[cnae],
+    telefone1: telefones[0] || null,
+    telefone2: telefones[1] || null,
+    email: normalizarEmail(row.email),
+    segmento,
     origem: "Receita Federal"
   };
 }
@@ -186,57 +120,40 @@ async function processarZip(caminhoZip) {
 
     let lote = [];
 
-    await new Promise((resolve, reject) => {
-      let parser;
-
-      parser = file
-        .stream()
-        .pipe(iconv.decodeStream("latin1"))
-        .pipe(
-          csv({
-            separator: ";",
-            headers: HEADERS
-          })
-        )
-        .on("data", async (row) => {
-          parser.pause();
-          lidos += 1;
-          const prospect = montarProspect(row);
-
-          if (!prospect) {
-            parser.resume();
-            return;
-          }
-
-          validos += 1;
-          lote.push(prospect);
-
-          if (lote.length >= TAMANHO_LOTE) {
-            const paraSalvar = lote;
-            lote = [];
-            inseridos += await salvarLote(paraSalvar);
-            console.log(`Lidos: ${lidos} | Aderentes: ${validos} | Inseridos: ${inseridos}`);
-          }
-
-          parser.resume();
-        })
-        .on("end", async () => {
-          inseridos += await salvarLote(lote);
-          resolve();
-        })
-        .on("error", reject);
-    });
+    const origem = file.stream();
+    const decoder = iconv.decodeStream("latin1");
+    const parser = csv({ separator: ";", headers: HEADERS, strict: true });
+    origem.on("error", (error) => parser.destroy(error));
+    decoder.on("error", (error) => parser.destroy(error));
+    parser.on("close", () => { origem.destroy(); decoder.destroy(); });
+    origem.pipe(decoder).pipe(parser);
+    for await (const row of parser) {
+      lidos += 1;
+      const prospect = montarProspect(row);
+      if (!prospect) continue;
+      validos += 1;
+      lote.push(prospect);
+      if (lote.length >= TAMANHO_LOTE) {
+        inseridos += await salvarLote(lote);
+        lote = [];
+        console.log(`Lidos: ${lidos} | Aderentes: ${validos} | Inseridos: ${inseridos}`);
+      }
+    }
+    inseridos += await salvarLote(lote);
   }
 
   console.log(`Finalizado ${path.basename(caminhoZip)} | Lidos: ${lidos} | Aderentes: ${validos} | Inseridos: ${inseridos}`);
 }
 
 async function main() {
+  if (!Number.isInteger(TAMANHO_LOTE) || TAMANHO_LOTE < 1) throw new Error("IMPORT_BATCH_SIZE deve ser um inteiro positivo.");
+  if (!fs.existsSync(PASTA_ESTABELECIMENTOS)) throw new Error(`Coloque os ZIPs de Estabelecimentos da Receita Federal em ${PASTA_ESTABELECIMENTOS}`);
   const arquivos = fs
     .readdirSync(PASTA_ESTABELECIMENTOS)
-    .filter((arquivo) => arquivo.toLowerCase().endsWith(".zip"))
+    .filter((arquivo) => /^Estabelecimentos\d+\.zip$/i.test(arquivo))
     .sort();
 
+  if (!arquivos.length) throw new Error("Nenhum ZIP de Estabelecimentos encontrado.");
   console.log(`Arquivos de estabelecimentos encontrados: ${arquivos.length}`);
 
   for (const arquivo of arquivos) {

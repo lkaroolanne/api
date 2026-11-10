@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { consultarGoogle } from '../controllers/contatoGoogle.controller.js';
 
 import {
   buscarSalvarEmpresaPorCnpj,
@@ -18,6 +19,8 @@ import {
 } from "../controllers/empresas.controller.js";
 
 const router = Router();
+
+router.post('/contato-google/:cnpj', consultarGoogle);
 
 router.get("/", listarEmpresas);
 
