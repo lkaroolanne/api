@@ -4,7 +4,7 @@ const salvar = document.querySelector('#prospects-salvar');
 const status = document.querySelector('#prospects-status');
 const local = ['', 'localhost', '127.0.0.1'].includes(location.hostname);
 const api = (window.API_URL || localStorage.getItem('API_URL') ||
-  (local ? 'http://localhost:3001' : (location.hostname.endsWith('github.io') ? '' : location.origin))).replace(/\/$/, '');
+  (local ? (location.origin !== 'null' ? location.origin : 'http://localhost:3001') : (location.hostname.endsWith('github.io') ? '' : location.origin))).replace(/\/$/, '');
 let conferido = null;
 arquivo.addEventListener('change', () => { conferido = null; salvar.disabled = true; });
 async function importar(aplicar) {

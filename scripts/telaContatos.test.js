@@ -10,7 +10,7 @@ function tela() {
   const script = html.match(/<script type="module">([\s\S]*?)<\/script>/)[1].replace(/^\s*import .*?;\s*$/gm, '');
   // Check the entire page script, then run the functions without startup/network calls.
   new vm.Script(script);
-  const context = vm.createContext({ ...contatos, ...consulta, console,
+  const context = vm.createContext({ ...contatos, ...consulta, console, AbortController, URLSearchParams,
     window: { location: { hostname: 'localhost' }, localStorage: { getItem: () => null } },
     document: { querySelector: () => ({}) }
   });
@@ -26,6 +26,28 @@ test('tela retira ações do número errado e promove o telefone alternativo', (
   const html = run('renderizarAcoesLead(enriquecerEmpresa(empresasAtuais[0]),0)');
   assert.match(html, /tel:\+551132345678/);
   assert.doesNotMatch(html, /wa\.me/);
+});
+
+test('uma busca nova cancela a anterior e uma resposta atrasada não substitui o resultado atual', async () => {
+  const run = tela();
+  run(`
+    campoCategoria.value='todos'; campoUfBusca.value=''; campoContato.value='todos'; campoSituacao.value='ativas-pendentes';
+    campoSituacao.selectedOptions=[{textContent:'Ativas e pendentes'}];
+    filtrosRapidos.querySelectorAll=()=>[];
+    definirCarregando=()=>{}; atualizarPaginacao=()=>{}; renderizarLinhas=()=>{}; renderizarAtalhos=()=>{};
+    globalThis.pedidos=[];
+    buscarJson=(url,opcoes)=>new Promise(resolve=>pedidos.push({url,signal:opcoes.signal,resolve}));
+  `);
+  const primeira = run(`executarBusca('alpha')`);
+  const segunda = run(`executarBusca('beta')`);
+  assert.equal(run('pedidos[0].signal.aborted'), true);
+  run(`pedidos[1].resolve({sucesso:true,total:1,consulta:normalizarConsulta({termo:'beta'}),pagina:1,totalPaginas:1,empresas:[]})`);
+  await segunda;
+  run(`pedidos[0].resolve({sucesso:true,total:99,consulta:normalizarConsulta({termo:'alpha'}),pagina:1,totalPaginas:1,empresas:[]})`);
+  await primeira;
+  assert.equal(run('buscaAtual.valor'), 'beta');
+  assert.equal(run('buscaAtual.total'), 1);
+  assert.equal(run('buscaEmAndamento'), false);
 });
 
 test('confirmações novas vencem cache da tela; empresas baixadas não têm ações de contato', () => {

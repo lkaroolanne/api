@@ -1,5 +1,13 @@
 # Base de prospects Vortech
 
+## Experiência de prospecção
+
+A tela principal prioriza busca e empresas. Segmentos aparecem como atalhos, com correspondência por palavras no nome; isso não confirma venda de produtos de solda. Opções da busca permite alternar entre cadastros ativos e pendentes. A tabela reúne CNPJ, fantasia, CNAE e origem em **Ver cadastro**, com cinco colunas visíveis. **Registrar resultado** salva o acompanhamento apenas no navegador. **Mais opções** contém cópia e a consulta Google individual. Importação e base de clientes ficam em **Gerenciar bases**. Os botões de download gerais permanecem retirados da tela.
+
+A busca por nome ignora acentos, exige todos os termos relevantes e admite início de palavra. Solda/soldagem e alguns termos comerciais tratam flexões explícitas, evitando confundir solda com soldado. CNPJ e CNAE exigem, respectivamente, 14 e 7 dígitos e usam igualdade. Uma nova busca cancela a requisição anterior; respostas atrasadas não substituem a consulta atual. Indicadores de contato usam os mesmos critérios de formato da busca, sem confirmar titularidade, entrega de e-mail ou WhatsApp.
+
+`public/premium.css` contém o acabamento visual e as adaptações para celular. Para testar os filtros diretamente no PostgreSQL sem ler ou alterar empresas, configure `RUN_DB_TESTS=1` ao executar `node --test scripts/buscaPrecisao.test.js`. O teste usa registros fictícios com `jsonb_to_recordset` e requer conexão ao banco.
+
 ## Configuração
 
 Execute `npm ci`, configure `DATABASE_URL` em `.env`, aplique `npx prisma migrate deploy` e gere o cliente com `npm run prisma:generate`. Inicie com `npm start`. A execução local usa a URL externa do PostgreSQL; serviços Render na mesma região podem usar a interna. Credenciais e arquivos da base ficam fora do Git.

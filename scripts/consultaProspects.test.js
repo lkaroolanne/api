@@ -39,7 +39,7 @@ test('termos, UF e padroes usam parametros, sem concatenar entrada em SQL', () =
   const q = montarConsultaProspects({ termo: "alpha'; DROP TABLE teste;--", uf: 'SP', grupo: 'solda' }).where;
   assert.doesNotMatch(q.text, /DROP|alpha|teste/);
   assert.ok(q.values.includes('SP'));
-  assert.ok(q.values.includes('%drop%'));
+  assert.ok(q.values.includes('\\mdrop'));
 });
 test('pagina vazia nunca vira exportacao de toda a base', async () => {
   let chamadas = 0;

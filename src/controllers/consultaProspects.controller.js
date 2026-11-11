@@ -10,6 +10,7 @@ export function criarConsultaProspects({ db = prisma, consultar = consultarProsp
     listar: async (req, res) => {
       try {
         const resultado = await consultar(db, req.query);
+        res.set({ 'Cache-Control': 'no-store' });
         return res.json({ sucesso: true, ...resultado });
       } catch (error) {
         return res.status(error.code ? 500 : 400).json({ sucesso: false, mensagem: error.code ? 'Nao foi possivel consultar a base.' : error.message });

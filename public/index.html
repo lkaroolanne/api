@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vortech | Banco de Prospects</title>
-  <link rel="stylesheet" href="./index.css">
-</head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="theme-color" content="#111310"><title>Vortech | Prospecção comercial</title><link rel="stylesheet" href="./index.css"><link rel="stylesheet" href="./premium.css"></head>
 <body>
-  <main class="app-shell">
-    <header class="brand-header">
-      <img
-        class="brand-logo"
-        src="./img/WhatsApp%20Image%202026-07-10%20at%2010.33.47.jpeg"
-        alt="Vortech"
-      >
-      <div class="brand-copy">
-        <h1>Vortech Equipamentos</h1>
-        <p>Banco de prospects</p>
-        <span class="brand-badge">Solda, Corte, Gases e Ferramentas</span>
-      </div>
-
-      <section class="search-panel brand-search" aria-labelledby="titulo-pagina">
-        <section class="command-strip" aria-label="Indicadores da base">
+<main class="app-shell">
+  <header class="brand-header">
+    <img class="brand-logo" src="./img/WhatsApp%20Image%202026-07-10%20at%2010.33.47.jpeg" alt="Vortech">
+    <div class="brand-copy"><h1>Vortech<span> Equipamentos</span></h1><p>Prospecção comercial</p></div>
+    <span class="brand-badge"><span class="status-dot"></span>Seu espaço de negócios</span>
+  </header>
+  <section class="overview" aria-label="Visão geral da base">
+    <section class="command-strip" aria-label="Indicadores da base">
           <div class="metric-card is-primary">
             <span>Base online</span>
             <strong id="metrica-total">...</strong>
@@ -38,7 +26,7 @@
             <small>E-mails disponíveis no cadastro</small>
           </div>
         </section>
-          <div class="executive-grid" id="executive-grid" hidden>
+    <details class="page-overview"><summary>Resumo da página carregada</summary><div class="executive-grid" id="executive-grid" hidden>
             <article class="executive-card">
               <span>Total encontrado</span>
               <strong id="exec-total">0</strong>
@@ -64,18 +52,11 @@
               <strong id="exec-estrategia">-</strong>
               <small id="exec-qualidade">Qualidade da base: 0%</small>
             </article>
-          </div>
-        <div class="search-title">
-          <h2 id="titulo-pagina">Encontre empresas</h2>
-        </div>
-
-        <form id="form-busca" class="search-form">
-          <div class="search-filters">
-            <label>Situação<select id="busca-situacao"><option value="ativas-pendentes">Ativas e pendentes de validação</option><option value="ativas">Somente ativas</option><option value="pendentes">Pendentes de validação (nova base)</option></select></label>
-            <input id="busca-categoria" type="hidden" value="todos">
-            <input id="busca-uf" type="hidden" value="">
-            <input id="busca-contato" type="hidden" value="todos">
-          </div>
+          </div></details>
+  </section>
+  <section class="search-panel brand-search" aria-labelledby="titulo-pagina">
+    <div class="search-title"><p class="eyebrow">BUSQUE. CONFIRA. CONECTE.</p><h2 id="titulo-pagina">Sua próxima oportunidade começa aqui.</h2><p class="search-description">Encontre empresas e organize o próximo contato em um só lugar.</p></div>
+    <form id="form-busca" class="search-form">
           <label class="sr-only" for="busca">CNAE, CNPJ ou termo de revendedor</label>
           <div class="input-row">
             <input
@@ -90,46 +71,77 @@
           </div>
           <div id="sugestoes-busca" class="suggestion-row" hidden></div>
           <small>Busque pelo nome, CNPJ ou CNAE, ou deixe em branco para ver a base.</small>
+          <details class="search-options"><summary>Opções da busca</summary><div class="search-filters">
+            <label>Situação<select id="busca-situacao"><option value="ativas-pendentes">Ativas e pendentes de validação</option><option value="ativas">Somente ativas</option><option value="pendentes">Pendentes de validação (nova base)</option></select></label>
+            <input id="busca-categoria" type="hidden" value="todos">
+            <input id="busca-uf" type="hidden" value="">
+            <input id="busca-contato" type="hidden" value="todos">
+          </div></details>
         </form>
-      </section>
-    </header>
-
-
-
-    <aside class="sidebar" aria-labelledby="titulo-atalhos">
-      <details id="atalhos-categorias" open>
-      <summary class="sidebar-head" id="titulo-atalhos">Atalhos: ver empresas ou baixar por categoria</summary>
-      <p class="contact-help">Use os atalhos para buscar por categoria. Uma empresa pode aparecer em mais de uma categoria.</p>
-      <div id="lista-atalhos" class="shortcut-list"></div>
-      </details>
-    </aside>
-
-    <div class="workspace">
-      <section class="content-area">
-        <section class="results-panel" id="painel-resultados">
-          <div class="results-header">
-            <div>
-              <p class="eyebrow">Resultado</p>
-              <h2 id="resumo"></h2>
+    <nav id="lista-atalhos" class="shortcut-list" aria-label="Buscar por segmento"></nav>
+    <p class="search-disclaimer">Os segmentos usam evidências no nome da empresa. A atuação com solda e a situação cadastral precisam de confirmação.</p>
+  </section>
+  <div class="workspace"><section class="content-area"><section class="results-panel" id="painel-resultados" aria-busy="false">
+    <div class="results-header"><div><p class="eyebrow">EMPRESAS</p><h2 id="resumo">Carregando sua base…</h2></div><div class="actions-row"><button id="limpar" class="ghost-button" type="button">Limpar busca</button><button id="atualizar-lote" type="button" disabled hidden></button><button id="exportar" type="button" disabled hidden></button><button id="exportar-busca" type="button" disabled hidden></button></div></div>
+    <p id="mensagem" class="message" role="status" aria-live="polite">Preparando sua lista de empresas…</p><p id="cnpja-status" class="cnpja-status" hidden></p>
+    <div class="commercial-toolbar" id="commercial-toolbar" hidden>
+            <div class="quick-filters" id="filtros-rapidos">
+              <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
+              <button class="filter-chip" type="button" data-filtro="telefone">Com telefone válido</button>
+              <button class="filter-chip" type="button" data-filtro="celular">Com celular</button>
+              <button class="filter-chip" type="button" data-filtro="confirmados">Contatos confirmados</button>
+              <button class="filter-chip" type="button" data-filtro="errados">Revisar números errados</button>
+              <button class="filter-chip" type="button" data-filtro="email">Com e-mail</button>
+              <button class="filter-chip" type="button" data-filtro="sem-email">Sem e-mail</button>
+              <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
             </div>
-
-            <div class="actions-row">
-              <button id="atualizar-lote" class="secondary-button" type="button" disabled hidden></button>
-              <button id="exportar" class="secondary-button" type="button" disabled hidden>
-                Baixar lista desta página
-              </button>
-              <button id="exportar-busca" class="secondary-button" type="button" disabled hidden>Baixar toda a busca</button>
-              <button id="base-vortech-toggle" class="ghost-button" type="button">Base Vortech</button>
-              <button id="limpar" class="ghost-button" type="button">Limpar busca</button>
+            <div class="toolbar-actions">
+              <button id="limpar-filtros" class="ghost-button compact-button" type="button">Limpar filtros</button>
             </div>
           </div>
-          <section id="contato-google-painel" class="google-contact-panel" aria-live="polite" hidden></section>
-          <p id="mensagem" class="message">
-            A busca consulta o backend em http://localhost:3001.
-          </p>
-          <p id="cnpja-status" class="cnpja-status" hidden></p>
+    <section id="contato-google-painel" class="google-contact-panel" aria-live="polite" hidden></section>
+    <div class="daily-list" id="daily-list" hidden>
+            <div class="daily-head">
+              <div>
+                <p class="eyebrow">Lista do dia</p>
+                <h3>Top leads para atacar agora</h3>
+              </div>
+              <button id="fechar-lista-dia" class="ghost-button compact-button" type="button">Fechar</button>
+            </div>
+            <div id="daily-list-content" class="seller-list"></div>
+          </div>
 
-          <div class="base-vortech-panel" id="base-vortech-panel" hidden>
+          <div id="paginacao" class="pagination-bar" hidden>
+            <div>
+              <strong id="pagina-info">Paginas</strong>
+              <span id="pagina-range">Mostrando resultados</span>
+            </div>
+            <div class="page-actions" id="paginas-numericas"></div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th data-coluna="empresa">Empresa</th>
+                  <th data-coluna="uf">UF</th>
+                  <th data-coluna="telefone">Telefone</th>
+                  <th data-coluna="email">Email</th>
+                  <th data-coluna="acao">Acao</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-resultados">
+                <tr>
+                  <td colspan="11" class="empty-state">Nenhuma busca realizada.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="load-more-bar" id="load-more-bar" hidden>
+            <button id="mostrar-mais" class="ghost-button compact-button" type="button">Mostrar mais</button>
+          </div>
+  </section></section></div>
+  <details class="management-panel"><summary>Gerenciar bases <span>Clientes e importação de planilhas</span></summary><div class="management-content"><button id="base-vortech-toggle" class="ghost-button" type="button">Consultar minha base de clientes</button><div class="base-vortech-panel" id="base-vortech-panel" hidden>
             <div>
               <p class="eyebrow">Base Vortech</p>
               <strong id="base-vortech-status">Nenhuma base carregada</strong>
@@ -159,74 +171,9 @@
               <button id="prospects-salvar" type="button" class="secondary-button" disabled>Salvar atualização</button>
             </div>
             <p id="prospects-status" role="status" aria-live="polite">Confira a planilha antes de salvar. Esta opção atualiza prospects; a Base Vortech identifica seus clientes.</p>
-          </details>
-
-          <div class="commercial-toolbar" id="commercial-toolbar" hidden>
-            <div class="quick-filters" id="filtros-rapidos">
-              <button class="filter-chip is-active" type="button" data-filtro="todos">Todos</button>
-              <button class="filter-chip" type="button" data-filtro="telefone">Com telefone válido</button>
-              <button class="filter-chip" type="button" data-filtro="celular">Com celular</button>
-              <button class="filter-chip" type="button" data-filtro="confirmados">Contatos confirmados</button>
-              <button class="filter-chip" type="button" data-filtro="errados">Revisar números errados</button>
-              <button class="filter-chip" type="button" data-filtro="email">Com e-mail</button>
-              <button class="filter-chip" type="button" data-filtro="sem-email">Sem e-mail</button>
-              <button class="filter-chip" type="button" data-filtro="sem-contato">Sem contato</button>
-            </div>
-            <div class="toolbar-actions">
-              <button id="limpar-filtros" class="ghost-button compact-button" type="button">Limpar filtros</button>
-            </div>
-          </div>
-
-          <p class="contact-help">Prioridade nesta página: contatos confirmados, celulares e fixos. Celular não confirma WhatsApp. Registre o resultado após o contato; os registros ficam neste navegador e são considerados ao baixar a planilha.</p>
-          <div class="daily-list" id="daily-list" hidden>
-            <div class="daily-head">
-              <div>
-                <p class="eyebrow">Lista do dia</p>
-                <h3>Top leads para atacar agora</h3>
-              </div>
-              <button id="fechar-lista-dia" class="ghost-button compact-button" type="button">Fechar</button>
-            </div>
-            <div id="daily-list-content" class="seller-list"></div>
-          </div>
-
-          <div id="paginacao" class="pagination-bar" hidden>
-            <div>
-              <strong id="pagina-info">Paginas</strong>
-              <span id="pagina-range">Mostrando resultados</span>
-            </div>
-            <div class="page-actions" id="paginas-numericas"></div>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th data-coluna="cnpj">CNPJ</th>
-                  <th data-coluna="empresa">Empresa</th>
-                  <th data-coluna="fantasia">Fantasia</th>
-                  <th data-coluna="tags">Tags</th>
-                  <th data-coluna="cnae">CNAE</th>
-                  <th data-coluna="uf">UF</th>
-                  <th data-coluna="telefone">Telefone</th>
-                  <th data-coluna="email">Email</th>
-                  <th data-coluna="acao">Acao</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-resultados">
-                <tr>
-                  <td colspan="11" class="empty-state">Nenhuma busca realizada.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="load-more-bar" id="load-more-bar" hidden>
-            <button id="mostrar-mais" class="ghost-button compact-button" type="button">Mostrar mais</button>
-          </div>
-        </section>
-      </section>
-    </div>
-  </main>
-
+          </details></div></details>
+  <footer class="app-footer"><span>VORTECH · EQUIPAMENTOS</span><span>Dados para prospecção. Contatos e atividade comercial sujeitos a verificação.</span></footer>
+</main>
   <script type="module">
     import { contatosEmpresa, melhorContato, chaveContato, STATUS_CONTATO, linkWhatsapp } from './contatos.js';
     import { CATEGORIAS, UFS, TIPOS_CONTATO, normalizarConsulta, nomePlanilha } from './consulta.js';
@@ -235,7 +182,7 @@
     const API_URL = (
       window.API_URL ||
       window.localStorage.getItem("API_URL") ||
-      (hostLocal ? "http://localhost:3001" : (hostGithubPages ? "" : window.location.origin))
+      (hostLocal ? (window.location.origin && window.location.origin !== 'null' ? window.location.origin : 'http://localhost:3001') : (hostGithubPages ? "" : window.location.origin))
     ).replace(/\/$/, "");
     const mensagemApiPadrao = API_URL
       ? `A busca consulta o backend em ${API_URL}.`
@@ -327,15 +274,11 @@
     };
 
     const COLUNAS_PADRAO = {
-      cnpj: "CNPJ",
       empresa: "Empresa",
-      fantasia: "Fantasia",
-      tags: "Tags",
-      cnae: "CNAE",
       uf: "UF",
       telefone: "Telefone",
-      email: "Email",
-      acao: "Acao"
+      email: "E-mail",
+      acao: "Contato"
     };
     const ORDEM_COLUNAS_PADRAO = Object.keys(COLUNAS_PADRAO);
     const SITUACOES_RECEITA = {
@@ -384,6 +327,7 @@
     let exportacaoEmAndamento = false;
     let numeroBusca = 0;
     let buscaEmAndamento = false;
+    let controleBusca = null;
     let consultaGoogleAtual = 0;
     const consultasGooglePendentes = new Set();
 
@@ -484,10 +428,10 @@
       document.querySelectorAll("th[data-coluna]").forEach((th) => {
         const chave = th.dataset.coluna;
         th.textContent = tituloColuna(chave);
-        th.contentEditable = "true";
-        th.draggable = true;
+        th.contentEditable = "false";
+        th.draggable = false;
         th.spellcheck = false;
-        th.title = "Clique para editar o titulo ou arraste para mudar a ordem";
+        th.title = '';
       });
     }
 
@@ -653,7 +597,7 @@
     }
 
     function temEmail(empresa) {
-      return Boolean(String(empresa.email || "").trim());
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(empresa.email || '').trim());
     }
 
     function situacaoConferidaApi(empresa) {
@@ -925,11 +869,8 @@
     }
 
     function renderizarAtalhos() {
-      listaAtalhos.innerHTML = `<div class="category-grid">${CATEGORIAS.map(c=>`
-        <div class="category-card ${campoCategoria.value===c.id?'is-active':''}">
-          <button class="cnae-chip" type="button" data-grupo="${c.id}"><strong>${escaparHtml(c.nome)}</strong><span>Ver empresas</span></button>
-          <button class="mini-button" type="button" data-exportar-grupo="${c.id}" ${exportacaoEmAndamento?'disabled':''}>Baixar Excel desta categoria</button>
-        </div>`).join('')}</div>`;
+      listaAtalhos.innerHTML = `<div class="segment-tabs">${[{id:'todos',nome:'Todos os segmentos'}, ...CATEGORIAS].map(c=>`
+        <button class="segment-tab ${campoCategoria.value===c.id?'is-active':''}" type="button" data-grupo="${c.id}" aria-pressed="${campoCategoria.value===c.id}">${escaparHtml(c.nome)}</button>`).join('')}</div>`;
     }
 
     async function atualizarAtalhosComDados() { renderizarAtalhos(); }
@@ -1003,10 +944,11 @@
       return contatos.map(contato => `
         <div class="contact-review ${contato.bloqueado ? 'contact-invalid' : ''}">
           <strong>${escaparHtml(contato.numero)}</strong>
-          <small>${contato.status === 'whatsapp' ? 'WhatsApp confirmado pela equipe' : contato.celular ? 'Celular ? WhatsApp a verificar' : 'Fixo'}${contato.atualizadoEm ? ` ? Registro em ${escaparHtml(new Date(contato.atualizadoEm).toLocaleDateString('pt-BR'))}` : ''}</small>
+          <small>${contato.status === 'whatsapp' ? 'WhatsApp confirmado por você' : contato.celular ? 'Celular · WhatsApp a verificar' : 'Fixo'}${contato.atualizadoEm ? ` · ${escaparHtml(new Date(contato.atualizadoEm).toLocaleDateString('pt-BR'))}` : ''}</small>
+          <details class="contact-outcome"><summary>Registrar resultado</summary>
           <select aria-label="Resultado do contato ${contato.numero}" data-contato-index="${index}" data-telefone="${contato.numero}">
             ${Object.entries(STATUS_CONTATO).map(([valor, label]) => `<option value="${valor}" ${contato.status === valor ? 'selected' : ''}>${label}</option>`).join('')}
-          </select>
+          </select><small>Salvo somente neste navegador.</small></details>
         </div>`).join('');
     }
 
@@ -1015,13 +957,15 @@
       const podeAbordar = !lead.situacaoComercial?.bloqueada;
       return `
         <div class="lead-actions">
-          ${podeAbordar ? `<button class="mini-button" type="button" data-google="${index}" ${consultasGooglePendentes.has(lead.cnpj) ? 'disabled' : ''}>Consultar contato Google</button>` : ''}
           ${contato && podeAbordar ? `<a class="mini-button action-link" href="tel:+55${contato.numero}">Ligar</a>` : ""}
           ${contato && podeAbordar && (contato.celular || contato.status === "whatsapp") ? `<a class="mini-button action-link" href="${urlWhatsapp(lead)}" target="_blank" rel="noopener">${contato.status === "whatsapp" ? "WhatsApp confirmado" : "Verificar WhatsApp"}</a>` : ""}
-          <button class="mini-button" type="button" data-copiar="${index}">Copiar</button>
           ${temEmail(lead) && podeAbordar
             ? `<a class="mini-button action-link" href="${urlEmail(lead)}" target="_blank" rel="noopener">E-mail</a>`
-            : `<button class="mini-button" type="button" disabled>E-mail</button>`}
+            : ''}
+          <details class="more-actions"><summary>Mais opções</summary>
+            <button class="mini-button" type="button" data-copiar="${index}">Copiar cadastro</button>
+            ${podeAbordar ? `<button class="mini-button" type="button" data-google="${index}" ${consultasGooglePendentes.has(lead.cnpj) ? 'disabled' : ''}>Consultar Google</button><small>A consulta Google pode gerar cobrança. O contato precisa de verificação.</small>` : ''}
+          </details>
         </div>
       `;
     }
@@ -1060,7 +1004,7 @@
       gradeExecutiva.hidden = !empresasAtuais.length;
       atualizarExportacao();
       if (!empresasAtuais.length) {
-        tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhum CNPJ encontrado para esta busca.</td></tr>`;
+        tabela.innerHTML = `<tr><td colspan="${colspan}" class="empty-state">Nenhuma empresa encontrada.<small>Tente outro nome ou remova o segmento selecionado. Em Opções da busca, inclua cadastros pendentes.</small></td></tr>`;
         loadMoreBar.hidden = true;
         return;
       }
@@ -1078,17 +1022,17 @@
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
             : (!lead.situacao ? '<span class="enrich-badge">Situação cadastral a verificar</span>' : '');
-          const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Telefone e e-mail preenchidos</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
+          const badgesContato = `<div class="score-stack">${badgeSituacao}${badgeBaseVortech}</div>`;
           const celulas = {
             cnpj: `<td data-coluna="cnpj" data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>`,
-            empresa: `<td data-coluna="empresa" data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial">${escaparHtml(lead.razaoSocial)}</td>`,
+            empresa: `<td data-coluna="empresa" data-label="${escaparAtributo(tituloColuna("empresa"))}" data-campo="razaoSocial"><strong class="company-name">${escaparHtml(lead.nomeFantasia || lead.razaoSocial || 'Nome não informado')}</strong><span class="company-cnpj">${escaparHtml(formatarCnpj(lead.cnpj))}</span>${badgesContato}<details class="company-details"><summary>Ver cadastro</summary><dl><dt>Razão social</dt><dd>${escaparHtml(lead.razaoSocial || 'Não informada')}</dd><dt>CNAE · segmento cadastrado</dt><dd>${escaparHtml(lead.cnaePrincipal || 'Não informado')} · ${escaparHtml(lead.segmento || 'Não informado')}</dd><dt>Situação · origem</dt><dd>${escaparHtml(lead.situacaoComercial.label)} · ${escaparHtml(lead.origem || 'Não informada')}</dd><dt>Última atualização do cadastro</dt><dd>${lead.atualizadoEm ? escaparHtml(new Date(lead.atualizadoEm).toLocaleDateString('pt-BR')) : 'Não informada'}</dd></dl></details></td>`,
             fantasia: `<td data-coluna="fantasia" data-label="${escaparAtributo(tituloColuna("fantasia"))}" data-campo="nomeFantasia">${escaparHtml(lead.nomeFantasia)}</td>`,
             tags: `<td data-coluna="tags" data-label="${escaparAtributo(tituloColuna("tags"))}">${lead.tags.map((tag) => `<span class="tag">${escaparHtml(tag)}</span>`).join("") || "-"}</td>`,
             cnae: `<td data-coluna="cnae" data-label="${escaparAtributo(tituloColuna("cnae"))}" data-campo="cnaePrincipal">${escaparHtml(lead.cnaePrincipal)}</td>`,
             uf: `<td data-coluna="uf" data-label="${escaparAtributo(tituloColuna("uf"))}" data-campo="uf">${escaparHtml(lead.ufComercial)}</td>`,
             telefone: `<td data-coluna="telefone" data-label="${escaparAtributo(tituloColuna("telefone"))}" data-campo="telefone">${renderizarContatos(lead, index)}</td>`,
             email: `<td data-coluna="email" data-label="${escaparAtributo(tituloColuna("email"))}" data-campo="email">${escaparHtml(lead.email)}</td>`,
-            acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}"><strong class="action-title">${escaparHtml(acaoCurta(lead))}</strong>${renderizarAcoesLead(lead, index)}</td>`
+            acao: `<td data-coluna="acao" data-label="${escaparAtributo(tituloColuna("acao"))}">${renderizarAcoesLead(lead, index)}</td>`
           };
           return `
             <tr class="${lead.baseVortechMatch ? "lead-base-row" : ""} ${lead.situacaoComercial?.bloqueada ? "lead-problem-row" : ""}" data-index="${index}">
@@ -1121,7 +1065,7 @@
         metricaTelefone.textContent = formatarNumero(dados.comTelefone);
         metricaEmail.textContent = formatarNumero(dados.comEmail);
         metricaStatus.textContent = dados.total
-          ? "Base pronta para consulta e exportacao"
+          ? "Cadastros ativos e pendentes"
           : "Base online vazia: importe a planilha para liberar resultados";
 
         atualizarAtalhosComDados();
@@ -1192,9 +1136,11 @@
 
     function definirCarregando(ativo) {
       botaoBuscar.disabled = ativo;
-      inputBusca.disabled = ativo;
+      inputBusca.disabled = false;
       botaoBuscar.textContent = ativo ? "Buscando..." : "Buscar";
       document.querySelector("#painel-resultados").classList.toggle("is-loading", ativo);
+      document.querySelector("#painel-resultados").setAttribute('aria-busy', String(ativo));
+      tabelaContainer.inert = ativo;
       if (ativo) {
         mensagem.textContent = "Buscando prospects na base...";
       }
@@ -1354,11 +1300,13 @@
     }
 
     async function executarBusca(valor, tipo = 'auto', pagina = 1) {
-      const pedido = ++numeroBusca;
       const termo = String(valor || '').trim();
       let consulta;
       try { consulta = normalizarConsulta({ termo, grupo: campoCategoria.value, uf: campoUfBusca.value, contato: campoContato.value, situacao: campoSituacao.value, pagina, limite: 100 }); }
-      catch (error) { buscaEmAndamento=false; definirCarregando(false); atualizarExportacao(); mensagem.textContent=error.message; return false; }
+      catch (error) { mensagem.textContent=error.message; return false; }
+      const pedido = ++numeroBusca;
+      controleBusca?.abort();
+      controleBusca = new AbortController();
       buscaEmAndamento = true;
       definirCarregando(true);
       botaoExportar.disabled = true;
@@ -1367,7 +1315,7 @@
       mensagem.textContent = 'Aplicando categoria, estado e tipo de contato.';
       try {
         validarApiUrl();
-        const dados = await buscarJson(`${API_URL}/empresas/consulta?${new URLSearchParams(consulta)}`);
+        const dados = await buscarJson(`${API_URL}/empresas/consulta?${new URLSearchParams(consulta)}`, { signal: controleBusca.signal });
         if (pedido !== numeroBusca) return false;
         if (!dados.sucesso) throw new Error(dados.mensagem || 'Nao foi possivel buscar.');
         filtroAtual = consulta.contato;
@@ -1376,7 +1324,7 @@
         const categoria = CATEGORIAS.find(c=>c.id===consulta.grupo)?.nome || 'Todas as categorias';
         resumo.textContent = `${formatarNumero(dados.total)} ${dados.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}`;
         const situacaoTexto = campoSituacao.selectedOptions[0].textContent;
-        mensagem.textContent = `${categoria} | ${consulta.uf || 'Todo o Brasil'} | ${situacaoTexto} | Página ${dados.pagina} de ${dados.totalPaginas}. A exportação comercial inclui somente empresas ativas. Cadastros sem UF não aparecem ao filtrar por estado.`;
+        mensagem.textContent = `${categoria} · ${situacaoTexto} · Página ${dados.pagina} de ${dados.totalPaginas}${['confirmados','errados'].includes(filtroAtual) ? ' · Confirmações deste navegador' : ''}`;
         atualizarPaginacao(dados);
         botaoAtualizarLote.disabled = !dados.empresas.length;
         renderizarLinhas(dados.empresas);
@@ -1683,6 +1631,7 @@
 
     botaoLimpar.addEventListener('click',()=>{
       inputBusca.value='';campoCategoria.value='todos';campoUfBusca.value='';campoContato.value='todos';
+      campoSituacao.value='ativas-pendentes';
       fecharContatoGoogle();executarBusca('');inputBusca.focus();
     });
 
@@ -1722,7 +1671,6 @@
     });
 
     aplicarTitulosTabela();
-    if (window.matchMedia?.('(max-width: 600px)').matches) $('#atalhos-categorias').open = false;
     renderizarAtalhos();
     atualizarStatusBaseVortech();
     carregarBaseVortechAutomatica();

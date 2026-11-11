@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/client.js";
+import { montarConsultaProspects } from '../services/consultaProspects.js';
 import { buscarCnpjBrasilApi, obterStatusCnpja } from "../services/cnpj.service.js";
 import { gerarPlanilhaEmpresas } from "../services/exportarExcel.service.js";
 import fs from "node:fs";
@@ -692,46 +693,23 @@ export async function importarBaseVortechPlanilha(req, res) {
 
 export async function obterMetricasProspects(req, res) {
   try {
-    const [total, comEmail, comTelefone, porCnae] = await Promise.all([
-      prisma.receitaProspect.count(),
-      prisma.receitaProspect.count({
-        where: {
-          email: {
-            not: null
-          }
-        }
-      }),
-      prisma.receitaProspect.count({
-        where: {
-          OR: [
-            { telefone1: { not: null } },
-            { telefone2: { not: null } }
-          ]
-        }
-      }),
-      prisma.receitaProspect.groupBy({
-        by: ["cnaePrincipal"],
-        _count: {
-          cnaePrincipal: true
-        },
-        orderBy: {
-          _count: {
-            cnaePrincipal: "desc"
-          }
-        },
-        take: 12
-      })
-    ]);
+    const entrada = { situacao: 'ativas-pendentes' };
+    const { where: totalWhere } = montarConsultaProspects(entrada);
+    const { where: emailWhere } = montarConsultaProspects({ ...entrada, contato: 'email' });
+    const { where: telefoneWhere } = montarConsultaProspects({ ...entrada, contato: 'telefone' });
+    const [[metricas], porCnae] = await Promise.all([prisma.$queryRaw`
+      SELECT count(*)::int AS total,
+        count(*) FILTER (WHERE ${emailWhere})::int AS "comEmail",
+        count(*) FILTER (WHERE ${telefoneWhere})::int AS "comTelefone"
+      FROM "ReceitaProspect" e WHERE ${totalWhere}`,
+      prisma.receitaProspect.groupBy({ by: ['cnaePrincipal'], _count: { cnaePrincipal: true },
+        orderBy: { _count: { cnaePrincipal: 'desc' } }, take: 12 })]);
 
+    res.set('Cache-Control', 'no-store');
     return res.json({
       sucesso: true,
-      total,
-      comEmail,
-      comTelefone,
-      porCnae: porCnae.map((item) => ({
-        cnae: item.cnaePrincipal,
-        total: item._count.cnaePrincipal
-      }))
+      ...metricas,
+      porCnae: porCnae.map(item => ({ cnae: item.cnaePrincipal, total: item._count.cnaePrincipal }))
     });
   } catch (error) {
     return res.status(500).json({
