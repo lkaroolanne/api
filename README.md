@@ -8,6 +8,8 @@ A busca por nome ignora acentos, exige todos os termos relevantes e admite iníc
 
 `public/premium.css` contém o acabamento visual e as adaptações para celular. Para testar os filtros diretamente no PostgreSQL sem ler ou alterar empresas, configure `RUN_DB_TESTS=1` ao executar `node --test scripts/buscaPrecisao.test.js`. O teste usa registros fictícios com `jsonb_to_recordset` e requer conexão ao banco.
 
+A migração `20261111190000_index_busca_nome` habilita `pg_trgm` e cria um índice GIN na expressão normalizada de nomes. A expressão do serviço e a do índice devem permanecer iguais. A criação inicial requer permissão para a extensão; nenhuma linha de empresa é alterada. O plano de execução foi conferido com uso de `receita_prospect_nome_busca_trgm`.
+
 ## Configuração
 
 Execute `npm ci`, configure `DATABASE_URL` em `.env`, aplique `npx prisma migrate deploy` e gere o cliente com `npm run prisma:generate`. Inicie com `npm start`. A execução local usa a URL externa do PostgreSQL; serviços Render na mesma região podem usar a interna. Credenciais e arquivos da base ficam fora do Git.

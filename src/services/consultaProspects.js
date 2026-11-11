@@ -21,7 +21,8 @@ export function termosParaBusca(valor) {
 
 export function montarConsultaProspects(entrada) {
   const consulta = normalizarConsulta(entrada);
-  const nomes = Prisma.sql`translate(lower(concat_ws(' ', e."nomeFantasia", e."razaoSocial")), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc')`;
+  // Mesma expressão imutável do índice receita_prospect_nome_busca_trgm.
+  const nomes = Prisma.sql`translate(lower(coalesce(e."nomeFantasia", '') || ' ' || coalesce(e."razaoSocial", '')), 'áàâãäéèêëíìîïóòôõöúùûüç', 'aaaaaeeeeiiiiooooouuuuc')`;
   const telefone = campo => {
     const limpo = Prisma.sql`regexp_replace(coalesce(${campo}, ''), '[^0-9]', '', 'g')`;
     const padrao = `^(55)?(${DDDS_VALIDOS.join('|')})([2-5][0-9]{7}|9[0-9]{8})$`;
