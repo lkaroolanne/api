@@ -33,7 +33,7 @@ Números errados deixam de ser sugeridos para ligação/WhatsApp e um telefone a
 
 Escolha categoria, estado e contato; nome, CNPJ ou CNAE são opcionais. A busca por nome desconsidera acentos. CNPJ completo e CNAE de sete dígitos, com ou sem formatação, são identificados separadamente. A página carrega 100 empresas; há navegação anterior/próxima e atalhos por categoria. No celular, os atalhos ficam recolhidos inicialmente para priorizar a busca.
 
-`GET /empresas/consulta` recebe `grupo`, `uf`, `contato`, `termo`, `pagina` e `limite`. A consulta considera somente situações ativas. As categorias podem se sobrepor: uma empresa com ferramentas e máquinas pode aparecer nas duas.
+`GET /empresas/consulta` recebe `grupo`, `uf`, `contato`, `situacao`, `termo`, `pagina` e `limite`. Situação aceita `ativas` (padrão da API), `pendentes` e `ativas-pendentes` (padrão da tela). Empresas inativas não entram nesses resultados. Pendentes recebem identificação na tela; a exportação comercial continua incluindo somente ativas. Cadastros da planilha sem UF ficam fora das buscas por estado. As categorias podem se sobrepor: uma empresa com ferramentas e máquinas pode aparecer nas duas.
 
 `POST /empresas/consulta/exportar` recebe `consulta`, `escopo` (`pagina` ou `todos`), `cnpjs` (obrigatórios para página), `baseVortech` e `contatos` locais. Exportação de página vazia retorna erro, nunca exporta toda a base por engano. O backend relê os registros e aplica os mesmos filtros; não confia em telefones enviados pelo navegador. Os CNPJs selecionados mantêm a ordem da tela.
 
@@ -56,6 +56,14 @@ O histórico `ConsultaContatoGoogle` guarda CNPJ, data, status e identificador p
 Política: https://developers.google.com/maps/documentation/places/web-service/policies
 
 O build do Render deve gerar o cliente Prisma e aplicar migrações antes de iniciar a aplicação. Para teste real local, configure também a chave em `.env`. `node scripts/auditarTelefones.js` faz três consultas de amostra na CNPJÁ pública, respeitando o limite, sem alterar o banco nem consumir créditos comerciais.
+
+## Atualizar com Prospects.xlsx
+
+Na tela, abra **Adicionar ou atualizar prospects por planilha**, selecione o arquivo, clique em **Conferir planilha** e depois em **Salvar atualização**. Essa importação é diferente da Base Vortech de clientes. Aceita até 10 MB e 100 mil CNPJs únicos.
+
+No terminal, execute `npm run importar:prospects -- "caminho/Prospects.xlsx"` para conferir e acrescente `--aplicar` para gravar. O arquivo não precisa ficar dentro do projeto. A planilha deve conter CNPJ e Razao Social; CNAE, Segmento e Email são opcionais.
+
+A atualização usa CNPJ como chave, consolida repetidos e salva todos os lotes em uma transação. Valores preenchidos atualizam os campos correspondentes; campos vazios ou e-mails malformados não apagam valores existentes. Telefones, endereço, situação cadastral e origem dos cadastros existentes são preservados. Novos registros têm origem Planilha Prospects e situação desconhecida: não aparecem na busca de empresas ativas até que a situação seja validada. A importação não confirma e-mails nem consulta serviços pagos.
 
 ## Testes
 

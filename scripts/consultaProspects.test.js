@@ -6,6 +6,15 @@ import { montarConsultaProspects } from '../src/services/consultaProspects.js';
 import { criarConsultaProspects } from '../src/controllers/consultaProspects.controller.js';
 
 const consulta = { grupo: 'solda', uf: 'SP', contato: 'telefone', pagina: 2, limite: 100 };
+test('situação separa pendentes e ativos sem incluir empresas inativas', () => {
+  assert.equal(normalizarConsulta({}).situacao, 'ativas');
+  assert.throws(() => normalizarConsulta({ situacao: 'qualquer' }));
+  const pendentes = montarConsultaProspects({ situacao: 'pendentes' }).where.text;
+  assert.match(pendentes, /NULLIF/);
+  assert.doesNotMatch(pendentes, /IN \('02'/);
+  const ambas = montarConsultaProspects({ situacao: 'ativas-pendentes' }).where.text;
+  assert.match(ambas, /IN \('02', '2', 'ativa', 'ativo'\).* OR .*NULLIF/);
+});
 const empresas = [
   { cnpj: '12345678000100', cnpjBasico: '12345678', razaoSocial: 'Alpha Soldas', situacao: '02', telefone1: '11987654321', email: 'a@example.com', uf: 'SP' },
   { cnpj: '87654321000100', cnpjBasico: '87654321', razaoSocial: 'Beta Soldas', situacao: '02', telefone1: '1132345678', uf: 'SP' },

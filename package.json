@@ -5,6 +5,7 @@
   "main": "src/server.js/index.js",
   "type": "module",
   "scripts": {
+    "importar:prospects": "node scripts/importarProspects.js",
     "dev": "nodemon src/server.js/index.js",
     "start": "node src/server.js/index.js",
     "prisma:migrate": "prisma migrate dev",

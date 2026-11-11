@@ -13,6 +13,8 @@ export function normalizarConsulta(valor = {}) {
   const grupo = String(valor.grupo || 'todos');
   const uf = String(valor.uf || '').toUpperCase();
   const contato = String(valor.contato || 'todos');
+  const situacao = String(valor.situacao || 'ativas');
+  if (!['ativas', 'pendentes', 'ativas-pendentes'].includes(situacao)) throw new Error('Situacao invalida.');
   if (grupo !== 'todos' && !CATEGORIAS.some(c => c.id === grupo)) throw new Error('Categoria invalida.');
   if (uf && !UFS.includes(uf)) throw new Error('Estado invalido.');
   if (!TIPOS_CONTATO.includes(contato)) throw new Error('Filtro de contato invalido.');
@@ -24,7 +26,7 @@ export function normalizarConsulta(valor = {}) {
   };
   const termo = String(valor.termo || '').trim();
   if (termo.length > 120) throw new Error('Use ate 120 caracteres na busca.');
-  return { grupo, uf, contato, termo, pagina: numero(valor.pagina, 1, 100000), limite: numero(valor.limite, 100, 500) };
+  return { grupo, uf, contato, situacao, termo, pagina: numero(valor.pagina, 1, 100000), limite: numero(valor.limite, 100, 500) };
 }
 
 export function nomePlanilha(consulta, escopo, instante = new Date()) {

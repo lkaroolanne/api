@@ -12,7 +12,10 @@ export function montarConsultaProspects(entrada) {
   };
   const telefoneValido = Prisma.sql`(${telefone(Prisma.sql`e."telefone1"`)} OR ${telefone(Prisma.sql`e."telefone2"`)})`;
   const email = Prisma.sql`coalesce(e.email, '') ~ ${'^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$'}`;
-  const filtros = [Prisma.sql`lower(e.situacao) IN ('02', '2', 'ativa', 'ativo')`];
+  const ativa = Prisma.sql`lower(e.situacao) IN ('02', '2', 'ativa', 'ativo')`;
+  const pendente = Prisma.sql`NULLIF(trim(e.situacao), '') IS NULL`;
+  const filtros = [consulta.situacao === 'pendentes' ? pendente
+    : consulta.situacao === 'ativas-pendentes' ? Prisma.sql`(${ativa} OR ${pendente})` : ativa];
   if (consulta.uf) filtros.push(Prisma.sql`e.uf = ${consulta.uf}`);
   if (consulta.grupo !== 'todos') {
     const categoria = CATEGORIAS.find(c => c.id === consulta.grupo);

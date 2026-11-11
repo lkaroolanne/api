@@ -27,6 +27,7 @@
 
         <form id="form-busca" class="search-form">
           <div class="search-filters">
+            <label>Situação<select id="busca-situacao"><option value="ativas-pendentes">Ativas e pendentes de validação</option><option value="ativas">Somente ativas</option><option value="pendentes">Pendentes de validação (nova base)</option></select></label>
             <label>Categoria<select id="busca-categoria"><option value="todos">Todas as categorias</option></select></label>
             <label>Estado<select id="busca-uf"><option value="">Todo o Brasil</option></select></label>
             <label>Contato<select id="busca-contato"><option value="todos">Todos os contatos</option><option value="telefone">Com telefone válido</option><option value="celular">Com celular</option><option value="email">Com e-mail</option><option value="sem-email">Sem e-mail</option><option value="sem-contato">Sem telefone e e-mail</option></select></label>
@@ -123,6 +124,17 @@
               <button id="base-vortech-fechar" class="ghost-button compact-button" type="button">Fechar</button>
             </div>
           </div>
+
+          <details class="base-vortech-panel">
+            <summary>Adicionar ou atualizar prospects por planilha</summary>
+            <p>Use CNPJ, Razao Social, CNAE, Segmento e Email. O CNPJ evita duplicados. Campos vazios não apagam os dados existentes. Novos cadastros aparecem como pendentes de validação. A exportação comercial inclui somente empresas ativas.</p>
+            <label>Planilha de prospects (até 10 MB) <input id="prospects-arquivo" type="file" accept=".xlsx,.xls,.csv"></label>
+            <div class="actions-row">
+              <button id="prospects-conferir" type="button" class="secondary-button">Conferir planilha</button>
+              <button id="prospects-salvar" type="button" class="secondary-button" disabled>Salvar atualização</button>
+            </div>
+            <p id="prospects-status" role="status" aria-live="polite">Confira a planilha antes de salvar. Esta opção atualiza prospects; a Base Vortech identifica seus clientes.</p>
+          </details>
 
           <div class="commercial-toolbar" id="commercial-toolbar" hidden>
             <div class="quick-filters" id="filtros-rapidos">
@@ -274,6 +286,7 @@
     const campoCategoria = $("#busca-categoria");
     const campoUfBusca = $("#busca-uf");
     const campoContato = $("#busca-contato");
+    const campoSituacao = $("#busca-situacao");
     campoCategoria.innerHTML += CATEGORIAS.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     campoUfBusca.innerHTML += UFS.map(uf => `<option value="${uf}">${uf}</option>`).join('');
     const botaoAtualizarLote = $("#atualizar-lote");
@@ -1072,7 +1085,7 @@
             : "";
           const badgeSituacao = lead.situacaoComercial?.bloqueada
             ? `<span class="problem-badge">Nao vender: ${escaparHtml(lead.situacaoComercial.label)}</span>`
-            : "";
+            : (!lead.situacao ? '<span class="enrich-badge">Situação cadastral a verificar</span>' : '');
           const badgesContato = `<div class="score-stack">${badgeSituacao}${contatoCompleto ? '<span class="contact-badge">Telefone e e-mail preenchidos</span>' : '<span class="enrich-badge">Precisa enriquecer</span>'}${badgeBaseVortech}</div>`;
           const celulas = {
             cnpj: `<td data-coluna="cnpj" data-label="${escaparAtributo(tituloColuna("cnpj"))}">${escaparHtml(formatarCnpj(lead.cnpj))}${badgesContato}</td>`,
@@ -1352,7 +1365,7 @@
       const pedido = ++numeroBusca;
       const termo = String(valor || '').trim();
       let consulta;
-      try { consulta = normalizarConsulta({ termo, grupo: campoCategoria.value, uf: campoUfBusca.value, contato: campoContato.value, pagina, limite: 100 }); }
+      try { consulta = normalizarConsulta({ termo, grupo: campoCategoria.value, uf: campoUfBusca.value, contato: campoContato.value, situacao: campoSituacao.value, pagina, limite: 100 }); }
       catch (error) { buscaEmAndamento=false; definirCarregando(false); atualizarExportacao(); mensagem.textContent=error.message; return false; }
       buscaEmAndamento = true;
       definirCarregando(true);
@@ -1370,7 +1383,8 @@
         buscaAtual = { tipo: 'consulta', valor: termo, consulta: dados.consulta, pagina: dados.pagina, totalPaginas: dados.totalPaginas, total: dados.total };
         const categoria = CATEGORIAS.find(c=>c.id===consulta.grupo)?.nome || 'Todas as categorias';
         resumo.textContent = `${formatarNumero(dados.total)} ${dados.total === 1 ? 'empresa encontrada' : 'empresas encontradas'}`;
-        mensagem.textContent = `${categoria} | ${consulta.uf || 'Todo o Brasil'} | Pagina ${dados.pagina} de ${dados.totalPaginas}. Use os botoes acima para baixar esta lista ou toda a busca.`;
+        const situacaoTexto = campoSituacao.selectedOptions[0].textContent;
+        mensagem.textContent = `${categoria} | ${consulta.uf || 'Todo o Brasil'} | ${situacaoTexto} | Página ${dados.pagina} de ${dados.totalPaginas}. A exportação comercial inclui somente empresas ativas. Cadastros sem UF não aparecem ao filtrar por estado.`;
         atualizarPaginacao(dados);
         botaoAtualizarLote.disabled = !dados.empresas.length;
         renderizarLinhas(dados.empresas);
@@ -1417,7 +1431,7 @@
       executarBusca(inputBusca.value);
     });
 
-    [campoCategoria, campoUfBusca, campoContato].forEach(campo=>campo.addEventListener('change',()=>executarBusca(inputBusca.value)));
+    [campoCategoria, campoUfBusca, campoContato, campoSituacao].forEach(campo=>campo.addEventListener('change',()=>executarBusca(inputBusca.value)));
     listaAtalhos.addEventListener('click', async event=>{
       const botao=event.target.closest('[data-grupo], [data-exportar-grupo]');
       if(!botao || exportacaoEmAndamento) return;
@@ -1724,5 +1738,6 @@
     carregarStatusCnpja();
     executarBusca('');
   </script>
+  <script type="module" src="./importar-prospects.js"></script>
 </body>
 </html>
