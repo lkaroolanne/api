@@ -539,6 +539,8 @@ button:disabled {
   margin-top: 10px;
 }
 
+#exportar[hidden],
+#exportar-busca[hidden],
 .suggestion-row[hidden],
 .commercial-toolbar[hidden],
 .base-vortech-panel[hidden],
@@ -1467,6 +1469,30 @@ td:first-child {
 .google-contact-panel a { color: #ffe081; }
 .google-attribution { font-family: Arial, sans-serif; font-size: 16px; font-weight: 500; color: #fff; }
 .search-panel.brand-search { grid-template-columns: 1fr; gap: 10px; }
+.brand-search .command-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 0;
+}
+.brand-search .metric-card { min-width: 0; min-height: 0; padding: 8px 10px; }
+.brand-search .metric-card span { font-size: 10px; }
+.brand-search .metric-card strong { margin-top: 4px; font-size: 21px; }
+.brand-search .metric-card small { margin-top: 3px; font-size: 10px; line-height: 1.3; }
+.brand-search .executive-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0;
+  border: 0;
+}
+.brand-search .executive-card { min-width: 0; min-height: 0; padding: 8px; }
+.brand-search .executive-card span { font-size: 9px; }
+.brand-search .executive-card strong { margin-top: 4px; font-size: 18px; line-height: 1.2; }
+.brand-search .executive-card small { margin-top: 3px; font-size: 10px; line-height: 1.3; }
+.brand-search .executive-card.is-premium strong { font-size: 12px; }
+@media (max-width: 600px) {
+  .brand-search .executive-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .brand-search .executive-card.is-premium { grid-column: span 2; }
+}
 .search-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .search-filters label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; color: #ece6cf; }
 .search-form > small { display: block; margin-top: 8px; color: #c5c1ad; }

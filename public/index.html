@@ -21,6 +21,50 @@
       </div>
 
       <section class="search-panel brand-search" aria-labelledby="titulo-pagina">
+        <section class="command-strip" aria-label="Indicadores da base">
+          <div class="metric-card is-primary">
+            <span>Base online</span>
+            <strong id="metrica-total">...</strong>
+            <small id="metrica-status">Verificando dados no servidor</small>
+          </div>
+          <div class="metric-card">
+            <span>Com telefone</span>
+            <strong id="metrica-telefone">...</strong>
+            <small>Formato válido; atendimento a confirmar</small>
+          </div>
+          <div class="metric-card">
+            <span>Com e-mail</span>
+            <strong id="metrica-email">...</strong>
+            <small>E-mails disponíveis no cadastro</small>
+          </div>
+        </section>
+          <div class="executive-grid" id="executive-grid" hidden>
+            <article class="executive-card">
+              <span>Total encontrado</span>
+              <strong id="exec-total">0</strong>
+              <small id="exec-visivel">0 visiveis</small>
+            </article>
+            <article class="executive-card is-base">
+              <span>Base Vortech</span>
+              <strong id="exec-base-vortech">0</strong>
+              <small id="exec-base-novos">0 novos na amostra</small>
+            </article>
+            <article class="executive-card">
+              <span>Telefone</span>
+              <strong id="exec-telefone">0</strong>
+              <small id="exec-completo">0 com telefone + e-mail</small>
+            </article>
+            <article class="executive-card">
+              <span>E-mail</span>
+              <strong id="exec-email">0</strong>
+              <small id="exec-sem-email">0 sem e-mail</small>
+            </article>
+            <article class="executive-card is-premium">
+              <span>Estrategia</span>
+              <strong id="exec-estrategia">-</strong>
+              <small id="exec-qualidade">Qualidade da base: 0%</small>
+            </article>
+          </div>
         <div class="search-title">
           <h2 id="titulo-pagina">Encontre empresas</h2>
         </div>
@@ -28,9 +72,9 @@
         <form id="form-busca" class="search-form">
           <div class="search-filters">
             <label>Situação<select id="busca-situacao"><option value="ativas-pendentes">Ativas e pendentes de validação</option><option value="ativas">Somente ativas</option><option value="pendentes">Pendentes de validação (nova base)</option></select></label>
-            <label>Categoria<select id="busca-categoria"><option value="todos">Todas as categorias</option></select></label>
-            <label>Estado<select id="busca-uf"><option value="">Todo o Brasil</option></select></label>
-            <label>Contato<select id="busca-contato"><option value="todos">Todos os contatos</option><option value="telefone">Com telefone válido</option><option value="celular">Com celular</option><option value="email">Com e-mail</option><option value="sem-email">Sem e-mail</option><option value="sem-contato">Sem telefone e e-mail</option></select></label>
+            <input id="busca-categoria" type="hidden" value="todos">
+            <input id="busca-uf" type="hidden" value="">
+            <input id="busca-contato" type="hidden" value="todos">
           </div>
           <label class="sr-only" for="busca">CNAE, CNPJ ou termo de revendedor</label>
           <div class="input-row">
@@ -45,33 +89,17 @@
             <button id="buscar" type="submit">Buscar empresas</button>
           </div>
           <div id="sugestoes-busca" class="suggestion-row" hidden></div>
-          <small>Escolha uma categoria e um estado, ou busque pelo nome. Não precisa saber o CNAE.</small>
+          <small>Busque pelo nome, CNPJ ou CNAE, ou deixe em branco para ver a base.</small>
         </form>
       </section>
     </header>
 
-    <section class="command-strip" aria-label="Indicadores da base">
-      <div class="metric-card is-primary">
-        <span>Base online</span>
-        <strong id="metrica-total">...</strong>
-        <small id="metrica-status">Verificando dados no servidor</small>
-      </div>
-      <div class="metric-card">
-        <span>Com telefone</span>
-        <strong id="metrica-telefone">...</strong>
-        <small>Formato válido; atendimento a confirmar</small>
-      </div>
-      <div class="metric-card">
-        <span>Com e-mail</span>
-        <strong id="metrica-email">...</strong>
-        <small>E-mails disponíveis no cadastro</small>
-      </div>
-    </section>
+
 
     <aside class="sidebar" aria-labelledby="titulo-atalhos">
       <details id="atalhos-categorias" open>
       <summary class="sidebar-head" id="titulo-atalhos">Atalhos: ver empresas ou baixar por categoria</summary>
-      <p class="contact-help">Os atalhos usam o estado e o contato selecionados acima. Uma empresa pode aparecer em mais de uma categoria.</p>
+      <p class="contact-help">Use os atalhos para buscar por categoria. Uma empresa pode aparecer em mais de uma categoria.</p>
       <div id="lista-atalhos" class="shortcut-list"></div>
       </details>
     </aside>
@@ -87,17 +115,14 @@
 
             <div class="actions-row">
               <button id="atualizar-lote" class="secondary-button" type="button" disabled hidden></button>
-              <button id="exportar" class="secondary-button" type="button" disabled>
+              <button id="exportar" class="secondary-button" type="button" disabled hidden>
                 Baixar lista desta página
               </button>
-              <button id="exportar-busca" class="secondary-button" type="button" disabled>Baixar toda a busca</button>
+              <button id="exportar-busca" class="secondary-button" type="button" disabled hidden>Baixar toda a busca</button>
               <button id="base-vortech-toggle" class="ghost-button" type="button">Base Vortech</button>
               <button id="limpar" class="ghost-button" type="button">Limpar busca</button>
             </div>
           </div>
-          <p id="exportacao-ajuda" class="contact-help">A planilha respeita a busca e remove clientes da Base Vortech e empresas inativas. Os contatos Google são consultados ao vivo e não entram no Excel.</p>
-
-          <p class="contact-help">Consulta Google individual: confere nome e endereco e pode ter cobranca na conta configurada. <a href="./termos-google.html" target="_blank" rel="noopener">Termos e privacidade</a>.</p>
           <section id="contato-google-painel" class="google-contact-panel" aria-live="polite" hidden></section>
           <p id="mensagem" class="message">
             A busca consulta o backend em http://localhost:3001.
@@ -153,34 +178,6 @@
           </div>
 
           <p class="contact-help">Prioridade nesta página: contatos confirmados, celulares e fixos. Celular não confirma WhatsApp. Registre o resultado após o contato; os registros ficam neste navegador e são considerados ao baixar a planilha.</p>
-          <div class="executive-grid" id="executive-grid" hidden>
-            <article class="executive-card">
-              <span>Total encontrado</span>
-              <strong id="exec-total">0</strong>
-              <small id="exec-visivel">0 visiveis</small>
-            </article>
-            <article class="executive-card is-base">
-              <span>Base Vortech</span>
-              <strong id="exec-base-vortech">0</strong>
-              <small id="exec-base-novos">0 novos na amostra</small>
-            </article>
-            <article class="executive-card">
-              <span>Telefone</span>
-              <strong id="exec-telefone">0</strong>
-              <small id="exec-completo">0 com telefone + e-mail</small>
-            </article>
-            <article class="executive-card">
-              <span>E-mail</span>
-              <strong id="exec-email">0</strong>
-              <small id="exec-sem-email">0 sem e-mail</small>
-            </article>
-            <article class="executive-card is-premium">
-              <span>Estrategia</span>
-              <strong id="exec-estrategia">-</strong>
-              <small id="exec-qualidade">Qualidade da base: 0%</small>
-            </article>
-          </div>
-
           <div class="daily-list" id="daily-list" hidden>
             <div class="daily-head">
               <div>
@@ -287,8 +284,6 @@
     const campoUfBusca = $("#busca-uf");
     const campoContato = $("#busca-contato");
     const campoSituacao = $("#busca-situacao");
-    campoCategoria.innerHTML += CATEGORIAS.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
-    campoUfBusca.innerHTML += UFS.map(uf => `<option value="${uf}">${uf}</option>`).join('');
     const botaoAtualizarLote = $("#atualizar-lote");
     const botaoBaseVortechToggle = $("#base-vortech-toggle");
     const resumo = $("#resumo");
@@ -945,9 +940,6 @@
       botaoExportarBusca.disabled = buscaEmAndamento || exportacaoEmAndamento || !buscaAtual.consulta || !buscaAtual.total || local;
       botaoExportar.textContent = `Baixar esta página (${formatarNumero(empresasVisiveis.length)})`;
       botaoExportarBusca.textContent = `Baixar toda a busca (${formatarNumero(buscaAtual.total || 0)})`;
-      $('#exportacao-ajuda').textContent = local
-        ? 'As confirmacoes ficam neste navegador. Use baixar lista desta pagina para exportar essa selecao. Numeros marcados como errados sao removidos da planilha.'
-        : 'A planilha respeita categoria, estado e contato da busca; remove clientes da Base Vortech, empresas inativas e numeros marcados como errados. Contatos Google nao entram no Excel.';
     }
 
     function filtrarLeads(lista) {
